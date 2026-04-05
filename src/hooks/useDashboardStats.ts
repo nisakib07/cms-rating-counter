@@ -23,6 +23,7 @@ export function useDashboardStats() {
     const { data: ratings } = await supabase
       .from('ratings')
       .select('*, member:members(*, team:teams(*)), team:teams(*)')
+      .eq('status', 'approved')
       .order('date_received', { ascending: false });
 
     if (teams && members && ratings) {

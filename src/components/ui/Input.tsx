@@ -35,11 +35,12 @@ interface SelectProps {
   options: { value: string; label: string }[];
   placeholder?: string;
   required?: boolean;
+  disabled?: boolean;
   id?: string;
   className?: string;
 }
 
-export function Select({ label, value, onChange, options, placeholder, required, id, className = '' }: SelectProps) {
+export function Select({ label, value, onChange, options, placeholder, required, disabled, id, className = '' }: SelectProps) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && <label className="text-sm font-medium text-text-secondary">{label}</label>}
@@ -48,7 +49,8 @@ export function Select({ label, value, onChange, options, placeholder, required,
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}
-        className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm appearance-none cursor-pointer"
+        disabled={disabled}
+        className={`w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm appearance-none ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
       >
         {placeholder && <option value="">{placeholder}</option>}
         {options.map((opt) => (

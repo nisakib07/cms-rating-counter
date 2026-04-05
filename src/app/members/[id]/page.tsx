@@ -29,6 +29,7 @@ export default function MemberProfilePage() {
         .from('ratings')
         .select('*, team:teams(*)')
         .eq('member_id', params.id)
+        .eq('status', 'approved')
         .order('date_received', { ascending: false });
       if (r) setRatings(r);
       setLoading(false);

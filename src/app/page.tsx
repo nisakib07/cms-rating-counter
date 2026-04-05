@@ -52,9 +52,13 @@ export default function PublicDashboard() {
                 Leaderboard
               </Link>
               <ThemeToggle />
+              <Link href="/submit" className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white bg-primary hover:bg-primary-hover border border-primary-light/20 transition-all duration-300 shadow-lg shadow-primary/25">
+                <Star size={14} fill="currentColor" />
+                Submit Rating
+              </Link>
               <Link href="/admin" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.1] transition-all duration-300">
                 <Shield size={14} />
-                <span className="hidden sm:inline">Admin Panel</span>
+                <span className="hidden sm:inline">Admin</span>
                 <ArrowRight size={14} />
               </Link>
             </div>

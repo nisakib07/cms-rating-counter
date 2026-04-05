@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Search, Shield, ShieldCheck, Download } from 'lucide-react';
 import { useMembers } from '@/hooks/useMembers';
 import { useTeams } from '@/hooks/useTeams';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import Button from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
@@ -12,12 +13,13 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Badge from '@/components/ui/Badge';
 import Pagination from '@/components/ui/Pagination';
 import type { Member, MemberFormData, MemberRole } from '@/types/database';
-import { ALL_ROLES, isAdminRole, isSuperAdmin } from '@/types/database';
+import { ALL_ROLES, isAdminRole, isSuperAdmin as isSuperAdminEmail } from '@/types/database';
 import { toDriveDirectUrl, exportToCSV } from '@/lib/utils';
 
 const defaultForm: MemberFormData = { member_id: '', name: '', email: '', role: 'Developer', team_id: '', profile_image: '', joined_at: new Date().toISOString().split('T')[0] };
 
 export default function MembersPage() {
+  const { isSuperAdmin, memberServiceLine } = useAuth();
   const { members, loading, createMember, updateMember, deleteMember } = useMembers();
   const { teams } = useTeams();
   const { showToast } = useToast();
@@ -75,11 +77,19 @@ export default function MembersPage() {
     setDeleteId(null);
   };
 
-  const teamOptions = teams.map(t => ({ value: t.id, label: `${t.name} (${t.service_line})` }));
+  const searchTeamOptions = teams.map(t => ({ value: t.id, label: `${t.name} (${t.service_line})` }));
+  const formTeamOptions = teams
+    .filter(t => {
+      if (form.role === 'Project Manager' || form.role === 'Operations Manager') {
+        return t.name === 'CMS Hub' || t.name === 'CMS Endgame';
+      }
+      return t.name !== 'CMS Hub' && t.name !== 'CMS Endgame';
+    })
+    .map(t => ({ value: t.id, label: `${t.name} (${t.service_line})` }));
   const roleOptions = ALL_ROLES.map(r => ({ value: r.value, label: r.label }));
 
   const getRoleBadge = (m: Member) => {
-    if (isSuperAdmin(m.email)) {
+    if (isSuperAdminEmail(m.email)) {
       return <Badge variant="danger" size="sm"><ShieldCheck size={10} /> Super Admin</Badge>;
     }
     if (isAdminRole(m.role)) {
@@ -109,7 +119,7 @@ export default function MembersPage() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, email, or ID..." className="w-full pl-10 pr-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm" />
         </div>
-        <Select value={filterTeam} onChange={setFilterTeam} placeholder="All Teams" options={teamOptions} />
+        <Select value={filterTeam} onChange={setFilterTeam} placeholder="All Teams" options={searchTeamOptions} />
         <Select value={filterRole} onChange={setFilterRole} placeholder="All Roles" options={roleOptions} />
       </div>
 
@@ -151,10 +161,16 @@ export default function MembersPage() {
                   <td className="px-5 py-4"><Badge variant={m.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'}>{m.team?.name || '—'}</Badge></td>
                   <td className="px-5 py-4 text-sm text-text-muted">{new Date(m.joined_at).toLocaleDateString()}</td>
                   <td className="px-5 py-4">
-                    <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => openEdit(m)} className="p-2 rounded-lg hover:bg-glass-light text-text-muted hover:text-text-primary transition-colors cursor-pointer"><Pencil size={15} /></button>
-                      <button onClick={() => setDeleteId(m.id)} className="p-2 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer"><Trash2 size={15} /></button>
-                    </div>
+                    {(isSuperAdmin || memberServiceLine === m.team?.service_line) ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => openEdit(m)} className="p-2 rounded-lg hover:bg-glass-light text-text-muted hover:text-text-primary transition-colors cursor-pointer"><Pencil size={15} /></button>
+                        <button onClick={() => setDeleteId(m.id)} className="p-2 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer"><Trash2 size={15} /></button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-end gap-1 px-4">
+                        <span className="text-xs text-text-muted italic">View only</span>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -173,7 +189,7 @@ export default function MembersPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select label="Role" value={form.role} onChange={v => setForm({ ...form, role: v as MemberRole })} options={roleOptions} id="member-role" />
-            <Select label="Team" value={form.team_id} onChange={v => setForm({ ...form, team_id: v })} options={teamOptions} placeholder="Select team" required id="member-team" />
+            <Select label="Team" value={form.team_id} onChange={v => setForm({ ...form, team_id: v })} options={formTeamOptions} placeholder="Select team" required id="member-team" />
           </div>
           {isAdminRole(form.role) && (
             <div className="bg-warning/10 border border-warning/20 rounded-lg px-4 py-2.5 text-xs text-warning-light flex items-center gap-2">

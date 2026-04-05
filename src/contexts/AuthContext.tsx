@@ -13,6 +13,7 @@ interface AuthContextType {
   loading: boolean;
   accessLevel: AccessLevel;
   memberName: string | null;
+  memberServiceLine: string | null;
   isAdmin: boolean;
   isSuperAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [accessLevel, setAccessLevel] = useState<AccessLevel>(null);
   const [memberName, setMemberName] = useState<string | null>(null);
+  const [memberServiceLine, setMemberServiceLine] = useState<string | null>(null);
 
   // Check user's access level by looking up their email in the members table
   const checkAccessLevel = useCallback(async (email: string | undefined) => {
@@ -43,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (SUPER_ADMIN_EMAILS.includes(email.toLowerCase())) {
       setAccessLevel('super_admin');
       setMemberName(null); // They might not be in members table
+      setMemberServiceLine(null);
       
       // Still try to get their name from members table
       const { data } = await supabase
@@ -57,19 +60,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check if user exists in members table with an admin role
     const { data: member } = await supabase
       .from('members')
-      .select('name, role')
+      .select('name, role, team:teams(service_line)')
       .eq('email', email)
       .single();
 
     if (member && ADMIN_ROLES.includes(member.role as typeof ADMIN_ROLES[number])) {
       setAccessLevel('admin');
       setMemberName(member.name);
+      setMemberServiceLine((member.team as any)?.service_line || null);
     } else if (member) {
       setAccessLevel('member');
       setMemberName(member.name);
+      setMemberServiceLine((member.team as any)?.service_line || null);
     } else {
       setAccessLevel(null);
       setMemberName(null);
+      setMemberServiceLine(null);
     }
   }, []);
 
@@ -125,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setAccessLevel(null);
     setMemberName(null);
+    setMemberServiceLine(null);
   };
 
   const isAdmin = accessLevel === 'admin' || accessLevel === 'super_admin';
@@ -132,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      session, user, loading, accessLevel, memberName,
+      session, user, loading, accessLevel, memberName, memberServiceLine,
       isAdmin, isSuperAdmin: isSuperAdminFlag,
       signIn, signUp, resetPassword, updatePassword, signOut
     }}>

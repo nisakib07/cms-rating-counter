@@ -27,7 +27,7 @@ export default function LeaderboardPage() {
       const [{ data: m }, { data: t }, { data: r }] = await Promise.all([
         supabase.from('members').select('*, team:teams(*)'),
         supabase.from('teams').select('*'),
-        supabase.from('ratings').select('*'),
+        supabase.from('ratings').select('*').eq('status', 'approved'),
       ]);
       if (m) setMembers(m);
       if (t) setTeams(t);

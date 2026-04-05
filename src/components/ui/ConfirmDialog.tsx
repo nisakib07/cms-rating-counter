@@ -9,10 +9,11 @@ interface ConfirmDialogProps {
   title: string;
   message: string;
   confirmText?: string;
+  confirmVariant?: 'danger' | 'primary' | 'ghost';
   loading?: boolean;
 }
 
-export default function ConfirmDialog({ isOpen, onClose, onConfirm, title, message, confirmText = 'Delete', loading }: ConfirmDialogProps) {
+export default function ConfirmDialog({ isOpen, onClose, onConfirm, title, message, confirmText = 'Delete', confirmVariant = 'danger', loading }: ConfirmDialogProps) {
   if (!isOpen) return null;
 
   return (
@@ -23,8 +24,8 @@ export default function ConfirmDialog({ isOpen, onClose, onConfirm, title, messa
         <p className="text-sm text-text-secondary mb-6">{message}</p>
         <div className="flex gap-3 justify-end">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button variant="danger" onClick={onConfirm} disabled={loading}>
-            {loading ? 'Deleting...' : confirmText}
+          <Button variant={confirmVariant} onClick={onConfirm} disabled={loading}>
+            {loading ? (confirmText === 'Delete' ? 'Deleting...' : 'Processing...') : confirmText}
           </Button>
         </div>
       </div>

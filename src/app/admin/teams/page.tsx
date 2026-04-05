@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2, Search, Crown, Download } from 'lucide-react';
 import { useTeams } from '@/hooks/useTeams';
 import { useMembers } from '@/hooks/useMembers';
 import { useRatings } from '@/hooks/useRatings';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import Button from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
@@ -17,6 +18,7 @@ import { exportToCSV } from '@/lib/utils';
 const defaultForm: TeamFormData = { name: '', service_line: 'CMS Hub' };
 
 export default function TeamsPage() {
+  const { isSuperAdmin, memberServiceLine } = useAuth();
   const { teams, loading, createTeam, updateTeam, deleteTeam } = useTeams();
   const { members } = useMembers();
   const { ratings } = useRatings();
@@ -140,10 +142,16 @@ export default function TeamsPage() {
                   </td>
                   <td className="px-5 py-4 text-sm text-text-muted">{new Date(team.created_at).toLocaleDateString()}</td>
                   <td className="px-5 py-4">
-                    <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => openEdit(team)} className="p-2 rounded-lg hover:bg-glass-light text-text-muted hover:text-text-primary transition-colors cursor-pointer"><Pencil size={15} /></button>
-                      <button onClick={() => setDeleteId(team.id)} className="p-2 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer"><Trash2 size={15} /></button>
-                    </div>
+                    {(isSuperAdmin || memberServiceLine === team.service_line) ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => openEdit(team)} className="p-2 rounded-lg hover:bg-glass-light text-text-muted hover:text-text-primary transition-colors cursor-pointer"><Pencil size={15} /></button>
+                        <button onClick={() => setDeleteId(team.id)} className="p-2 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer"><Trash2 size={15} /></button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-end gap-1 px-4">
+                        <span className="text-xs text-text-muted italic">View only</span>
+                      </div>
+                    )}
                   </td>
                 </tr>
               )})}

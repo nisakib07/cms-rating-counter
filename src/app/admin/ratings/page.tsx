@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2, Search, Star, Image, ExternalLink, Calendar, Down
 import { useRatings } from '@/hooks/useRatings';
 import { useTeams } from '@/hooks/useTeams';
 import { useMembers } from '@/hooks/useMembers';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import Button from '@/components/ui/Button';
 import { Input, Select, Textarea } from '@/components/ui/Input';
@@ -18,6 +19,7 @@ import { toDriveDirectUrl, exportToCSV } from '@/lib/utils';
 const defaultForm: RatingFormData = { member_id: '', team_id: '', rating_value: 5, order_id: '', client_name: '', review_text: '', screenshot_url: '', date_received: new Date().toISOString().split('T')[0] };
 
 export default function RatingsPage() {
+  const { isSuperAdmin, memberServiceLine } = useAuth();
   const { ratings, loading, createRating, updateRating, deleteRating } = useRatings();
   const { teams } = useTeams();
   const { members } = useMembers();
@@ -175,10 +177,16 @@ export default function RatingsPage() {
                     )}
                   </td>
                   <td className="px-5 py-4">
-                    <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => openEdit(r)} className="p-2 rounded-lg hover:bg-glass-light text-text-muted hover:text-text-primary transition-colors cursor-pointer"><Pencil size={15} /></button>
-                      <button onClick={() => setDeleteId(r.id)} className="p-2 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer"><Trash2 size={15} /></button>
-                    </div>
+                    {(isSuperAdmin || memberServiceLine === r.team?.service_line) ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => openEdit(r)} className="p-2 rounded-lg hover:bg-glass-light text-text-muted hover:text-text-primary transition-colors cursor-pointer"><Pencil size={15} /></button>
+                        <button onClick={() => setDeleteId(r.id)} className="p-2 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer"><Trash2 size={15} /></button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-end gap-1 px-4">
+                        <span className="text-xs text-text-muted italic">View only</span>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

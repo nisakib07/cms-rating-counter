@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, UserCircle, Star, LogOut, ShieldCheck, Shield, Menu, X, Key } from 'lucide-react';
+import { LayoutDashboard, Users, UserCircle, Star, LogOut, ShieldCheck, Shield, Menu, X, Key, ClipboardCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
 
@@ -11,6 +11,7 @@ const navItems = [
   { href: '/admin/teams', label: 'Teams', icon: Users },
   { href: '/admin/members', label: 'Members', icon: UserCircle },
   { href: '/admin/ratings', label: 'Ratings', icon: Star },
+  { href: '/admin/approvals', label: 'Approvals', icon: ClipboardCheck },
 ];
 
 export default function Sidebar() {

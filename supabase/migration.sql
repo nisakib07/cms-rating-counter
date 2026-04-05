@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS ratings (
   review_text TEXT,
   screenshot_url TEXT,
   date_received DATE DEFAULT CURRENT_DATE,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -46,6 +47,7 @@ CREATE INDEX IF NOT EXISTS idx_ratings_member_id ON ratings(member_id);
 CREATE INDEX IF NOT EXISTS idx_ratings_team_id ON ratings(team_id);
 CREATE INDEX IF NOT EXISTS idx_members_team_id ON members(team_id);
 CREATE INDEX IF NOT EXISTS idx_ratings_date_received ON ratings(date_received);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ratings_order_id ON ratings(order_id) WHERE order_id IS NOT NULL AND order_id != '';
 
 -- Enable Row Level Security
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
@@ -57,6 +59,9 @@ CREATE POLICY "Public read teams" ON teams FOR SELECT USING (true);
 CREATE POLICY "Public read members" ON members FOR SELECT USING (true);
 CREATE POLICY "Public read ratings" ON ratings FOR SELECT USING (true);
 
+-- Public insert access (for submit page)
+CREATE POLICY "Public insert ratings" ON ratings FOR INSERT TO anon, authenticated WITH CHECK (true);
+
 -- Admin write access (authenticated users only)
 CREATE POLICY "Admin insert teams" ON teams FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "Admin update teams" ON teams FOR UPDATE TO authenticated USING (true);
@@ -66,7 +71,7 @@ CREATE POLICY "Admin insert members" ON members FOR INSERT TO authenticated WITH
 CREATE POLICY "Admin update members" ON members FOR UPDATE TO authenticated USING (true);
 CREATE POLICY "Admin delete members" ON members FOR DELETE TO authenticated USING (true);
 
-CREATE POLICY "Admin insert ratings" ON ratings FOR INSERT TO authenticated WITH CHECK (true);
+-- Handled by Public insert ratings now, but we can keep admin update/delete
 CREATE POLICY "Admin update ratings" ON ratings FOR UPDATE TO authenticated USING (true);
 CREATE POLICY "Admin delete ratings" ON ratings FOR DELETE TO authenticated USING (true);
 

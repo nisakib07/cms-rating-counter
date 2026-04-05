@@ -6,7 +6,7 @@ export type MemberRole = 'Developer' | 'Co-lead' | 'Team Lead' | 'Project Manage
 export const ADMIN_ROLES: MemberRole[] = ['Operations Manager', 'Project Manager', 'Team Lead', 'Co-lead'];
 
 // Super admin emails (highest privilege)
-export const SUPER_ADMIN_EMAILS = ['nadiatul.sakib@gmail.com', 'officialbillal103@gmail.com'];
+export const SUPER_ADMIN_EMAILS = ['nadiatul.sakib@gmail.com'];
 
 export const ALL_ROLES: { value: MemberRole; label: string }[] = [
   { value: 'Developer', label: 'Developer' },
@@ -57,6 +57,7 @@ export interface Rating {
   review_text: string | null;
   screenshot_url: string | null;
   date_received: string;
+  status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   updated_at: string;
   // Joined fields
@@ -108,4 +109,5 @@ export interface RatingFormData {
   review_text: string;
   screenshot_url: string;
   date_received: string;
+  status?: 'pending' | 'approved' | 'rejected';
 }
