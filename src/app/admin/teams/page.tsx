@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Pencil, Trash2, Search, Crown, Download } from 'lucide-react';
 import { useTeams } from '@/hooks/useTeams';
+import { useMembers } from '@/hooks/useMembers';
+import { useRatings } from '@/hooks/useRatings';
 import { useToast } from '@/components/ui/Toast';
 import Button from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
@@ -10,11 +12,14 @@ import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Badge from '@/components/ui/Badge';
 import type { Team, TeamFormData, ServiceLine } from '@/types/database';
+import { exportToCSV } from '@/lib/utils';
 
 const defaultForm: TeamFormData = { name: '', service_line: 'CMS Hub' };
 
 export default function TeamsPage() {
   const { teams, loading, createTeam, updateTeam, deleteTeam } = useTeams();
+  const { members } = useMembers();
+  const { ratings } = useRatings();
   const { showToast } = useToast();
   const [search, setSearch] = useState('');
   const [filterLine, setFilterLine] = useState('');
@@ -23,6 +28,16 @@ export default function TeamsPage() {
   const [form, setForm] = useState<TeamFormData>(defaultForm);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('action') === 'add') {
+        setModalOpen(true);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, []);
 
   const filtered = teams.filter(t => {
     const matchSearch = t.name.toLowerCase().includes(search.toLowerCase());
@@ -61,7 +76,17 @@ export default function TeamsPage() {
           <h1 className="text-2xl font-bold text-text-primary">Teams</h1>
           <p className="text-sm text-text-muted mt-1">Manage teams across service lines</p>
         </div>
-        <Button onClick={openCreate} id="create-team-btn"><Plus size={16} /> Add Team</Button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => exportToCSV(filtered.map(t => {
+              const mc = members.filter(m => m.team_id === t.id).length;
+              const rc = ratings.filter(r => r.team_id === t.id).length;
+              return { Name: t.name, Service_Line: t.service_line, Members: mc, Ratings: rc, Created: new Date(t.created_at).toLocaleDateString() };
+            }), 'teams')}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium bg-white/[0.04] text-text-secondary border border-white/[0.06] hover:bg-white/[0.08] transition-all cursor-pointer"
+          ><Download size={14} /> Export CSV</button>
+          <Button onClick={openCreate} id="create-team-btn"><Plus size={16} /> Add Team</Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -81,19 +106,38 @@ export default function TeamsPage() {
               <tr className="border-b border-border">
                 <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Name</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Service Line</th>
+                <th className="text-center px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Members</th>
+                <th className="text-center px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Ratings</th>
+                <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Top Performer</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Created</th>
                 <th className="text-right px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={4} className="px-5 py-12 text-center text-text-muted"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
+                <tr><td colSpan={7} className="px-5 py-12 text-center text-text-muted"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={4} className="px-5 py-12 text-center text-text-muted text-sm">No teams found</td></tr>
-              ) : filtered.map(team => (
+                <tr><td colSpan={7} className="px-5 py-12 text-center text-text-muted text-sm">No teams found</td></tr>
+              ) : filtered.map(team => {
+                const teamMembers = members.filter(m => m.team_id === team.id);
+                const teamRatings = ratings.filter(r => r.team_id === team.id);
+                const memberRatings = teamMembers.map(m => ({ ...m, count: teamRatings.filter(r => r.member_id === m.id).length }));
+                const topPerformer = memberRatings.sort((a, b) => b.count - a.count)[0];
+                return (
                 <tr key={team.id} className="border-b border-border/50 hover:bg-glass transition-colors">
                   <td className="px-5 py-4 text-sm font-medium text-text-primary">{team.name}</td>
                   <td className="px-5 py-4"><Badge variant={team.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'}>{team.service_line}</Badge></td>
+                  <td className="px-5 py-4 text-center text-sm font-semibold text-text-primary">{teamMembers.length}</td>
+                  <td className="px-5 py-4 text-center text-sm font-semibold text-primary-light">{teamRatings.length}</td>
+                  <td className="px-5 py-4">
+                    {topPerformer && topPerformer.count > 0 ? (
+                      <div className="flex items-center gap-2">
+                        <Crown size={12} className="text-warning" />
+                        <span className="text-sm text-text-primary">{topPerformer.name}</span>
+                        <span className="text-xs text-text-muted">({topPerformer.count})</span>
+                      </div>
+                    ) : <span className="text-xs text-text-muted">—</span>}
+                  </td>
                   <td className="px-5 py-4 text-sm text-text-muted">{new Date(team.created_at).toLocaleDateString()}</td>
                   <td className="px-5 py-4">
                     <div className="flex items-center justify-end gap-1">
@@ -102,7 +146,7 @@ export default function TeamsPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>

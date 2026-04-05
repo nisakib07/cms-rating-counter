@@ -25,6 +25,7 @@ export function useRatings() {
     if (!payload.order_id) delete payload.order_id;
     if (!payload.client_name) delete payload.client_name;
     if (!payload.review_text) delete payload.review_text;
+    if (!payload.screenshot_url) delete payload.screenshot_url;
     const { error } = await supabase.from('ratings').insert(payload);
     if (!error) await fetchRatings();
     return { error: error?.message ?? null };
@@ -35,6 +36,7 @@ export function useRatings() {
     if (!payload.order_id) payload.order_id = null;
     if (!payload.client_name) payload.client_name = null;
     if (!payload.review_text) payload.review_text = null;
+    if (!payload.screenshot_url) payload.screenshot_url = null;
     const { error } = await supabase.from('ratings').update(payload).eq('id', id);
     if (!error) await fetchRatings();
     return { error: error?.message ?? null };

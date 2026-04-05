@@ -55,6 +55,7 @@ export interface Rating {
   order_id: string | null;
   client_name: string | null;
   review_text: string | null;
+  screenshot_url: string | null;
   date_received: string;
   created_at: string;
   updated_at: string;
@@ -105,5 +106,6 @@ export interface RatingFormData {
   order_id: string;
   client_name: string;
   review_text: string;
+  screenshot_url: string;
   date_received: string;
 }

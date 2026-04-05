@@ -9,9 +9,10 @@ interface StatsCardProps {
   color: string;
   glowClass?: string;
   delay?: number;
+  trend?: { value: number; label: string };
 }
 
-export default function StatsCard({ icon, label, value, color, glowClass = '', delay = 0 }: StatsCardProps) {
+export default function StatsCard({ icon, label, value, color, glowClass = '', delay = 0, trend }: StatsCardProps) {
   const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
@@ -51,6 +52,12 @@ export default function StatsCard({ icon, label, value, color, glowClass = '', d
         </div>
         <div className="text-4xl font-extrabold text-text-primary mb-1.5 tracking-tight tabular-nums">{displayValue.toLocaleString()}</div>
         <div className="text-sm font-medium text-text-muted tracking-wide uppercase">{label}</div>
+        {trend && (
+          <div className={`inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[11px] font-semibold ${trend.value >= 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
+            <span>{trend.value >= 0 ? '↑' : '↓'}</span>
+            {Math.abs(trend.value)}% {trend.label}
+          </div>
+        )}
       </div>
     </div>
   );

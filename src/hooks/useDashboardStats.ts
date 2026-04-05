@@ -11,6 +11,7 @@ export function useDashboardStats() {
   const [topTeams, setTopTeams] = useState<TeamWithStats[]>([]);
   const [topMembers, setTopMembers] = useState<MemberWithStats[]>([]);
   const [recentRatings, setRecentRatings] = useState<Rating[]>([]);
+  const [allRatings, setAllRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
@@ -50,6 +51,7 @@ export function useDashboardStats() {
 
       // Recent ratings
       setRecentRatings(ratings.slice(0, 10));
+      setAllRatings(ratings);
     }
 
     setLoading(false);
@@ -57,5 +59,5 @@ export function useDashboardStats() {
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
-  return { totalRatings, cmsHubRatings, cmsEndgameRatings, topTeams, topMembers, recentRatings, loading, fetchStats };
+  return { totalRatings, cmsHubRatings, cmsEndgameRatings, topTeams, topMembers, recentRatings, allRatings, loading, fetchStats };
 }

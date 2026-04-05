@@ -1,16 +1,30 @@
 'use client';
 
-import { Star, TrendingUp, Zap, Shield, ArrowRight } from 'lucide-react';
+import { Star, TrendingUp, Zap, Shield, ArrowRight, ArrowUpRight, ArrowDownRight, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import StatsCard from '@/components/dashboard/StatsCard';
 import LeaderboardCard from '@/components/dashboard/LeaderboardCard';
 import TeamChart from '@/components/dashboard/TeamChart';
 import ServiceLineChart from '@/components/dashboard/ServiceLineChart';
+import MonthlyTrendChart from '@/components/dashboard/MonthlyTrendChart';
 import RecentRatings from '@/components/dashboard/RecentRatings';
+import GlobalSearch from '@/components/dashboard/GlobalSearch';
+import { StatsCardSkeleton, LeaderboardSkeleton, ChartSkeleton, RecentRatingsSkeleton } from '@/components/ui/Skeleton';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 
 export default function PublicDashboard() {
-  const { totalRatings, cmsHubRatings, cmsEndgameRatings, topTeams, topMembers, recentRatings, loading } = useDashboardStats();
+  const { totalRatings, cmsHubRatings, cmsEndgameRatings, topTeams, topMembers, recentRatings, allRatings, loading } = useDashboardStats();
+
+  // Calculate this month vs last month
+  const now = new Date();
+  const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthKey = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
+
+  const thisMonthCount = allRatings.filter(r => r.date_received.startsWith(thisMonthKey)).length;
+  const lastMonthCount = allRatings.filter(r => r.date_received.startsWith(lastMonthKey)).length;
+  const changePercent = lastMonthCount > 0 ? Math.round(((thisMonthCount - lastMonthCount) / lastMonthCount) * 100) : (thisMonthCount > 0 ? 100 : 0);
 
   return (
     <div className="min-h-screen relative">
@@ -31,11 +45,19 @@ export default function PublicDashboard() {
               </div>
               <span className="font-bold text-lg text-text-primary tracking-tight">RatingHub</span>
             </div>
-            <Link href="/login" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.1] transition-all duration-300">
-              <Shield size={14} />
-              Admin Panel
-              <ArrowRight size={14} />
-            </Link>
+            <div className="flex items-center gap-3">
+              <GlobalSearch />
+              <Link href="/leaderboard" className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.1] transition-all duration-300">
+                <Trophy size={14} />
+                Leaderboard
+              </Link>
+              <ThemeToggle />
+              <Link href="/admin" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.1] transition-all duration-300">
+                <Shield size={14} />
+                <span className="hidden sm:inline">Admin Panel</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -62,14 +84,21 @@ export default function PublicDashboard() {
       {/* Main Content */}
       <main className="max-w-[1400px] mx-auto px-6 lg:px-10 pb-24 relative z-10">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <div className="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-            <span className="text-sm text-text-muted">Loading dashboard data...</span>
+          <div className="flex flex-col gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <StatsCardSkeleton /><StatsCardSkeleton /><StatsCardSkeleton /><StatsCardSkeleton />
+            </div>
+            <LeaderboardSkeleton />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ChartSkeleton /><ChartSkeleton />
+            </div>
+            <ChartSkeleton />
+            <RecentRatingsSkeleton />
           </div>
         ) : (
           <div className="flex flex-col gap-8">
             {/* Stats Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               <StatsCard
                 icon={<Star size={24} className="text-white" fill="white" />}
                 label="Total Ratings"
@@ -77,6 +106,7 @@ export default function PublicDashboard() {
                 color="from-primary to-secondary"
                 glowClass="glow-primary"
                 delay={0}
+                trend={changePercent !== 0 ? { value: changePercent, label: 'vs last month' } : undefined}
               />
               <StatsCard
                 icon={<TrendingUp size={24} className="text-white" />}
@@ -94,6 +124,13 @@ export default function PublicDashboard() {
                 glowClass="glow-endgame"
                 delay={300}
               />
+              <StatsCard
+                icon={<Star size={24} className="text-white" />}
+                label="This Month"
+                value={thisMonthCount}
+                color="from-secondary to-purple-400"
+                delay={450}
+              />
             </div>
 
             {/* Leaderboard */}
@@ -104,6 +141,9 @@ export default function PublicDashboard() {
               <TeamChart teams={topTeams} />
               <ServiceLineChart cmsHubRatings={cmsHubRatings} cmsEndgameRatings={cmsEndgameRatings} />
             </div>
+
+            {/* Trend Chart */}
+            <MonthlyTrendChart ratings={allRatings} />
 
             {/* Recent Ratings */}
             <RecentRatings ratings={recentRatings} />

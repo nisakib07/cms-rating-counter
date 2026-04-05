@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Pencil, Trash2, Search, Shield, ShieldCheck } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Pencil, Trash2, Search, Shield, ShieldCheck, Download } from 'lucide-react';
 import { useMembers } from '@/hooks/useMembers';
 import { useTeams } from '@/hooks/useTeams';
 import { useToast } from '@/components/ui/Toast';
@@ -10,8 +10,10 @@ import { Input, Select } from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Badge from '@/components/ui/Badge';
+import Pagination from '@/components/ui/Pagination';
 import type { Member, MemberFormData, MemberRole } from '@/types/database';
 import { ALL_ROLES, isAdminRole, isSuperAdmin } from '@/types/database';
+import { toDriveDirectUrl, exportToCSV } from '@/lib/utils';
 
 const defaultForm: MemberFormData = { member_id: '', name: '', email: '', role: 'Developer', team_id: '', profile_image: '', joined_at: new Date().toISOString().split('T')[0] };
 
@@ -27,6 +29,18 @@ export default function MembersPage() {
   const [form, setForm] = useState<MemberFormData>(defaultForm);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('action') === 'add') {
+        setModalOpen(true);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, []);
 
   const filtered = members.filter(m => {
     const matchSearch = m.name.toLowerCase().includes(search.toLowerCase()) || (m.email || '').toLowerCase().includes(search.toLowerCase()) || (m.member_id || '').toLowerCase().includes(search.toLowerCase());
@@ -81,7 +95,13 @@ export default function MembersPage() {
           <h1 className="text-2xl font-bold text-text-primary">Members</h1>
           <p className="text-sm text-text-muted mt-1">Manage team members</p>
         </div>
-        <Button onClick={openCreate} id="create-member-btn"><Plus size={16} /> Add Member</Button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => exportToCSV(filtered.map(m => ({ ID: m.member_id || '', Name: m.name, Email: m.email || '', Role: m.role, Team: m.team?.name || '', Joined: m.joined_at })), 'members')}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium bg-white/[0.04] text-text-secondary border border-white/[0.06] hover:bg-white/[0.08] transition-all cursor-pointer"
+          ><Download size={14} /> Export CSV</button>
+          <Button onClick={openCreate} id="create-member-btn"><Plus size={16} /> Add Member</Button>
+        </div>
       </div>
 
       <div className="glass rounded-xl p-4 mb-6 flex flex-wrap gap-3">
@@ -113,12 +133,15 @@ export default function MembersPage() {
                 <tr><td colSpan={8} className="px-5 py-12 text-center"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={8} className="px-5 py-12 text-center text-text-muted text-sm">No members found</td></tr>
-              ) : filtered.map(m => (
+              ) : filtered.slice((page - 1) * pageSize, page * pageSize).map(m => (
                 <tr key={m.id} className="border-b border-border/50 hover:bg-glass transition-colors">
                   <td className="px-5 py-4 text-sm font-mono text-text-muted">{m.member_id || '—'}</td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary-light font-semibold text-xs">{m.name.charAt(0)}</div>
+                      {m.profile_image ? (
+                        <img src={toDriveDirectUrl(m.profile_image)} alt={m.name} className="w-8 h-8 rounded-full object-cover bg-surface" onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling && ((e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex'); }} />
+                      ) : null}
+                      <div className={`w-8 h-8 rounded-full bg-primary/20 items-center justify-center text-primary-light font-semibold text-xs ${m.profile_image ? 'hidden' : 'flex'}`}>{m.name.charAt(0)}</div>
                       <span className="text-sm font-medium text-text-primary">{m.name}</span>
                     </div>
                   </td>
@@ -138,6 +161,7 @@ export default function MembersPage() {
             </tbody>
           </table>
         </div>
+        <Pagination currentPage={page} totalItems={filtered.length} pageSize={pageSize} onPageChange={(p) => setPage(p)} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
       </div>
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Member' : 'Add Member'} size="md">
@@ -157,7 +181,15 @@ export default function MembersPage() {
             </div>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input label="Profile Image URL" value={form.profile_image} onChange={v => setForm({ ...form, profile_image: v })} placeholder="https://..." id="member-image" />
+            <div>
+              <Input label="Profile Image URL" value={form.profile_image} onChange={v => setForm({ ...form, profile_image: v })} placeholder="Google Drive link or direct image URL" id="member-image" />
+              {form.profile_image && (
+                <div className="mt-2 flex items-center gap-3">
+                  <img src={toDriveDirectUrl(form.profile_image)} alt="Preview" className="w-10 h-10 rounded-full object-cover border border-border" onError={e => (e.currentTarget.style.display = 'none')} />
+                  <span className="text-xs text-text-muted">Preview</span>
+                </div>
+              )}
+            </div>
             <Input label="Joined Date" type="date" value={form.joined_at} onChange={v => setForm({ ...form, joined_at: v })} id="member-joined" />
           </div>
           <div className="flex gap-3 justify-end mt-2">

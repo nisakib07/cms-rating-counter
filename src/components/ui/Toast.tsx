@@ -40,17 +40,29 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     info: <AlertCircle size={18} className="text-primary-light" />,
   };
 
+  const progressColors = {
+    success: 'bg-success',
+    error: 'bg-danger',
+    info: 'bg-primary-light',
+  };
+
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
       <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2">
         {toasts.map((toast) => (
-          <div key={toast.id} className="glass-light rounded-xl px-4 py-3 flex items-center gap-3 min-w-[280px] shadow-2xl animate-slide-in">
-            {icons[toast.type]}
-            <span className="text-sm text-text-primary flex-1">{toast.message}</span>
-            <button onClick={() => removeToast(toast.id)} className="text-text-muted hover:text-text-primary cursor-pointer">
-              <X size={14} />
-            </button>
+          <div key={toast.id} className="glass-light rounded-xl overflow-hidden min-w-[280px] shadow-2xl animate-slide-in">
+            <div className="px-4 py-3 flex items-center gap-3">
+              {icons[toast.type]}
+              <span className="text-sm text-text-primary flex-1">{toast.message}</span>
+              <button onClick={() => removeToast(toast.id)} className="text-text-muted hover:text-text-primary cursor-pointer">
+                <X size={14} />
+              </button>
+            </div>
+            {/* Progress bar */}
+            <div className="h-0.5 w-full bg-white/[0.04]">
+              <div className={`h-full ${progressColors[toast.type]} toast-progress`} />
+            </div>
           </div>
         ))}
       </div>
