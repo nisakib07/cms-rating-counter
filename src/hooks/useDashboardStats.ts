@@ -27,13 +27,19 @@ export function useDashboardStats() {
       .order('date_received', { ascending: false });
 
     if (teams && members && ratings) {
-      setTotalRatings(ratings.length);
+      // Helper to count unique orders from a subset of ratings
+      const countUniqueOrders = (ratingSubset: Rating[]) => {
+        const validOrders = ratingSubset.filter(r => r.order_id).map(r => r.order_id as string);
+        return new Set(validOrders).size;
+      };
+
+      setTotalRatings(countUniqueOrders(ratings));
 
       // Service line counts
       const hubTeamIds = teams.filter(t => t.service_line === 'CMS Hub').map(t => t.id);
       const endgameTeamIds = teams.filter(t => t.service_line === 'CMS Endgame').map(t => t.id);
-      setCmsHubRatings(ratings.filter(r => hubTeamIds.includes(r.team_id)).length);
-      setCmsEndgameRatings(ratings.filter(r => endgameTeamIds.includes(r.team_id)).length);
+      setCmsHubRatings(countUniqueOrders(ratings.filter(r => hubTeamIds.includes(r.team_id))));
+      setCmsEndgameRatings(countUniqueOrders(ratings.filter(r => endgameTeamIds.includes(r.team_id))));
 
       // Team stats
       const teamStats: TeamWithStats[] = teams
@@ -41,7 +47,7 @@ export function useDashboardStats() {
         .map(t => ({
           ...t,
           member_count: members.filter(m => m.team_id === t.id).length,
-          rating_count: ratings.filter(r => r.team_id === t.id).length,
+          rating_count: countUniqueOrders(ratings.filter(r => r.team_id === t.id)),
         })).sort((a, b) => b.rating_count - a.rating_count);
       setTopTeams(teamStats);
 
