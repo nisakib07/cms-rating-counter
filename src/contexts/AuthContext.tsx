@@ -17,6 +17,8 @@ interface AuthContextType {
   isSuperAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
+  updatePassword: (password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -97,6 +99,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      return { error: null };
+    } catch (e: any) {
+      return { error: e.message };
+    }
+  };
+
+  const updatePassword = async (password: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      return { error: null };
+    } catch (e: any) {
+      return { error: e.message };
+    }
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setAccessLevel(null);
@@ -110,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       session, user, loading, accessLevel, memberName,
       isAdmin, isSuperAdmin: isSuperAdminFlag,
-      signIn, signUp, signOut
+      signIn, signUp, resetPassword, updatePassword, signOut
     }}>
       {children}
     </AuthContext.Provider>

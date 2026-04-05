@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { Star, Mail, Lock, LogIn } from 'lucide-react';
+import { Star, Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 export default function LoginPage() {
@@ -11,6 +12,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { signIn } = useAuth();
   const router = useRouter();
 
@@ -40,7 +42,7 @@ export default function LoginPage() {
           <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
             <Star size={24} className="text-white" fill="white" />
           </div>
-          <span className="font-bold text-2xl text-text-primary">RatingHub</span>
+          <span className="font-bold text-2xl text-text-primary">StarLedger</span>
         </div>
 
         {/* Card */}
@@ -79,13 +81,25 @@ export default function LoginPage() {
                 <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                 <input
                   id="login-password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+                  className="w-full pl-10 pr-12 py-2.5 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <div className="flex justify-end mt-1">
+                <Link href="/forgot-password" className="text-xs text-primary-light hover:text-primary transition-colors">
+                  Forgot your password?
+                </Link>
               </div>
             </div>
 

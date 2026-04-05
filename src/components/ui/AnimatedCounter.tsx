@@ -8,7 +8,7 @@ interface AnimatedCounterProps {
   className?: string;
 }
 
-export default function AnimatedCounter({ value, duration = 800, className = '' }: AnimatedCounterProps) {
+export default function AnimatedCounter({ value, duration = 400, className = '' }: AnimatedCounterProps) {
   const [display, setDisplay] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
   const hasAnimated = useRef(false);

@@ -43,7 +43,7 @@ export default function PublicDashboard() {
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
                 <Star size={16} className="text-white" fill="white" />
               </div>
-              <span className="font-bold text-lg text-text-primary tracking-tight">RatingHub</span>
+              <span className="font-bold text-lg text-text-primary tracking-tight">StarLedger</span>
             </div>
             <div className="flex items-center gap-3">
               <GlobalSearch />
@@ -158,7 +158,7 @@ export default function PublicDashboard() {
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
               <Star size={10} className="text-white" fill="white" />
             </div>
-            <span className="text-sm text-text-muted">© {new Date().getFullYear()} RatingHub</span>
+            <span className="text-sm text-text-muted">© {new Date().getFullYear()} StarLedger</span>
           </div>
           <span className="text-xs text-text-muted">Team Performance Tracker</span>
         </div>

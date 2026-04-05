@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "RatingHub - Team Performance Tracker",
+  title: "StarLedger - Team Performance Tracker",
   description: "Track and celebrate team performance with Fiverr ratings across CMS Hub and CMS Endgame service lines.",
 };
 

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, UserCircle, Star, LogOut, ShieldCheck, Shield, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, UserCircle, Star, LogOut, ShieldCheck, Shield, Menu, X, Key } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
 
@@ -38,7 +38,7 @@ export default function Sidebar() {
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
             <Star size={12} className="text-white" fill="white" />
           </div>
-          <span className="font-bold text-text-primary text-base">RatingHub</span>
+          <span className="font-bold text-text-primary text-base">StarLedger</span>
         </Link>
         <button
           onClick={() => setOpen(!open)}
@@ -70,7 +70,7 @@ export default function Sidebar() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
               <Star size={14} className="text-white" fill="white" />
             </div>
-            <span className="font-bold text-text-primary text-lg">RatingHub</span>
+            <span className="font-bold text-text-primary text-lg">StarLedger</span>
           </Link>
         </div>
 
@@ -112,6 +112,13 @@ export default function Sidebar() {
             {memberName && <p className="text-sm font-medium text-text-primary truncate">{memberName}</p>}
             <p className="text-xs text-text-muted truncate">{user?.email || 'Admin'}</p>
           </div>
+          <Link
+            href="/reset-password"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-white/[0.04] transition-all w-full cursor-pointer"
+          >
+            <Key size={18} />
+            Change Password
+          </Link>
           <button
             onClick={signOut}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-text-secondary hover:text-danger hover:bg-danger/10 transition-all w-full cursor-pointer"

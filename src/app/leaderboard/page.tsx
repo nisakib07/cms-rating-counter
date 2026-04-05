@@ -86,7 +86,7 @@ export default function LeaderboardPage() {
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
                 <Star size={16} className="text-white" fill="white" />
               </div>
-              <span className="font-bold text-lg text-text-primary tracking-tight">RatingHub</span>
+              <span className="font-bold text-lg text-text-primary tracking-tight">StarLedger</span>
             </Link>
             <Link href="/" className="flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors">
               <ArrowLeft size={14} /> Dashboard
