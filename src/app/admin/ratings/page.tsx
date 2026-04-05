@@ -157,7 +157,7 @@ export default function RatingsPage() {
                       <span className="text-sm font-medium text-text-primary">{r.member?.name || 'Unknown'}</span>
                     </div>
                   </td>
-                  <td className="px-5 py-4"><Badge variant={r.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'}>{r.team?.name || '—'}</Badge></td>
+                  <td className="px-5 py-4"><Badge variant={r.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} customColor={r.team?.color}>{r.team?.name || '—'}</Badge></td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-0.5">
                       {Array.from({ length: r.rating_value }).map((_, j) => (

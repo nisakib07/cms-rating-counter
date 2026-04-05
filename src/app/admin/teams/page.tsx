@@ -15,7 +15,7 @@ import Badge from '@/components/ui/Badge';
 import type { Team, TeamFormData, ServiceLine } from '@/types/database';
 import { exportToCSV } from '@/lib/utils';
 
-const defaultForm: TeamFormData = { name: '', service_line: 'CMS Hub' };
+const defaultForm: TeamFormData = { name: '', service_line: 'CMS Hub', color: '#10b981' };
 
 export default function TeamsPage() {
   const { isSuperAdmin, memberServiceLine } = useAuth();
@@ -48,7 +48,7 @@ export default function TeamsPage() {
   });
 
   const openCreate = () => { setEditingTeam(null); setForm(defaultForm); setModalOpen(true); };
-  const openEdit = (team: Team) => { setEditingTeam(team); setForm({ name: team.name, service_line: team.service_line }); setModalOpen(true); };
+  const openEdit = (team: Team) => { setEditingTeam(team); setForm({ name: team.name, service_line: team.service_line, color: team.color || '#10b981' }); setModalOpen(true); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,8 +127,13 @@ export default function TeamsPage() {
                 const topPerformer = memberRatings.sort((a, b) => b.count - a.count)[0];
                 return (
                 <tr key={team.id} className="border-b border-border/50 hover:bg-glass transition-colors">
-                  <td className="px-5 py-4 text-sm font-medium text-text-primary">{team.name}</td>
-                  <td className="px-5 py-4"><Badge variant={team.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'}>{team.service_line}</Badge></td>
+                  <td className="px-5 py-4 text-sm font-medium text-text-primary">
+                    <div className="flex items-center gap-2">
+                       {team.color && <div className="w-3 h-3 rounded-full" style={{ backgroundColor: team.color }} />}
+                       {team.name}
+                    </div>
+                  </td>
+                  <td className="px-5 py-4"><Badge variant={team.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} customColor={team.color}>{team.service_line}</Badge></td>
                   <td className="px-5 py-4 text-center text-sm font-semibold text-text-primary">{teamMembers.length}</td>
                   <td className="px-5 py-4 text-center text-sm font-semibold text-primary-light">{teamRatings.length}</td>
                   <td className="px-5 py-4">
@@ -164,7 +169,16 @@ export default function TeamsPage() {
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingTeam ? 'Edit Team' : 'Create Team'} size="sm">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input label="Team Name" value={form.name} onChange={v => setForm({ ...form, name: v })} placeholder="Enter team name" required id="team-name-input" />
-          <Select label="Service Line" value={form.service_line} onChange={v => setForm({ ...form, service_line: v as ServiceLine })} options={[{ value: 'CMS Hub', label: 'CMS Hub' }, { value: 'CMS Endgame', label: 'CMS Endgame' }]} id="team-service-line-select" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Select label="Service Line" value={form.service_line} onChange={v => setForm({ ...form, service_line: v as ServiceLine })} options={[{ value: 'CMS Hub', label: 'CMS Hub' }, { value: 'CMS Endgame', label: 'CMS Endgame' }]} id="team-service-line-select" />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-text-secondary">Team Color</label>
+              <div className="flex items-center gap-3">
+                <input type="color" value={form.color || '#10b981'} onChange={e => setForm({ ...form, color: e.target.value })} className="w-10 h-10 rounded cursor-pointer bg-transparent border-0 p-0" />
+                <span className="text-sm text-text-muted font-mono">{form.color || '#10b981'}</span>
+              </div>
+            </div>
+          </div>
           <div className="flex gap-3 justify-end mt-2">
             <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button>
             <Button type="submit" disabled={saving}>{saving ? 'Saving...' : editingTeam ? 'Update' : 'Create'}</Button>

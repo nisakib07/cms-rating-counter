@@ -65,7 +65,7 @@ export default function LeaderboardCard({ topMember, topTeam }: LeaderboardCardP
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-text-primary text-lg truncate group-hover/link:text-primary-light transition-colors">{topTeam.name}</div>
-                <Badge variant={topTeam.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} size="sm">
+                <Badge variant={topTeam.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} size="sm" customColor={topTeam.color}>
                   {topTeam.service_line}
                 </Badge>
               </div>

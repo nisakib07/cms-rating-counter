@@ -153,7 +153,7 @@ export default function LeaderboardPage() {
                 <div className="flex-1 min-w-0">
                   <div className="text-sm sm:text-base font-semibold text-text-primary truncate group-hover:text-primary-light transition-colors">{m.name}</div>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <Badge variant={m.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} size="sm">{m.team?.name}</Badge>
+                    <Badge variant={m.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} size="sm" customColor={m.team?.color}>{m.team?.name}</Badge>
                     <span className="text-xs text-text-muted">{m.role}</span>
                   </div>
                 </div>

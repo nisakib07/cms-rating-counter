@@ -158,7 +158,7 @@ export default function MembersPage() {
                   <td className="px-5 py-4 text-sm text-text-muted">{m.email || '—'}</td>
                   <td className="px-5 py-4"><Badge variant="neutral">{m.role}</Badge></td>
                   <td className="px-5 py-4">{getRoleBadge(m) || <span className="text-xs text-text-muted">Member</span>}</td>
-                  <td className="px-5 py-4"><Badge variant={m.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'}>{m.team?.name || '—'}</Badge></td>
+                  <td className="px-5 py-4"><Badge variant={m.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} customColor={m.team?.color}>{m.team?.name || '—'}</Badge></td>
                   <td className="px-5 py-4 text-sm text-text-muted">{new Date(m.joined_at).toLocaleDateString()}</td>
                   <td className="px-5 py-4">
                     {(isSuperAdmin || memberServiceLine === m.team?.service_line) ? (

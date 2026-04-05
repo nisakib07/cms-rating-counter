@@ -99,12 +99,12 @@ export default function TeamProfilePage() {
         {/* Team Header */}
         <div className="glass rounded-2xl p-8 mb-8 animate-fade-in">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-            <div className={`w-20 h-20 rounded-2xl flex items-center justify-center shadow-xl shrink-0 ${team.service_line === 'CMS Hub' ? 'bg-gradient-to-br from-cms-hub to-emerald-400' : 'bg-gradient-to-br from-cms-endgame to-blue-400'}`}>
+            <div className={`w-20 h-20 rounded-2xl flex items-center justify-center shadow-xl shrink-0 ${team.color ? '' : (team.service_line === 'CMS Hub' ? 'bg-gradient-to-br from-cms-hub to-emerald-400' : 'bg-gradient-to-br from-cms-endgame to-blue-400')}`} style={team.color ? { backgroundColor: team.color } : {}}>
               <Users size={32} className="text-white" />
             </div>
             <div className="flex-1 text-center sm:text-left">
               <h1 className="text-3xl font-bold text-text-primary mb-2">{team.name}</h1>
-              <Badge variant={team.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} size="sm">
+              <Badge variant={team.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} size="sm" customColor={team.color}>
                 {team.service_line}
               </Badge>
             </div>
@@ -188,7 +188,7 @@ export default function TeamProfilePage() {
                   />
                   <Bar dataKey="ratings" radius={[8, 8, 0, 0]} maxBarSize={36}>
                     {memberChartData.map((_, i) => (
-                      <Cell key={i} fill={team.service_line === 'CMS Hub' ? '#10b981' : '#3b82f6'} fillOpacity={0.85} />
+                      <Cell key={i} fill={team.color || (team.service_line === 'CMS Hub' ? '#10b981' : '#3b82f6')} fillOpacity={0.85} />
                     ))}
                   </Bar>
                 </BarChart>

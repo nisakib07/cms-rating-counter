@@ -66,7 +66,7 @@ export default function RecentRatings({ ratings }: RecentRatingsProps) {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1.5">
-                    <Badge variant={rating.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} size="sm">
+                    <Badge variant={rating.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} size="sm" customColor={rating.team?.color}>
                       {rating.team?.service_line === 'CMS Hub' ? 'Hub' : 'Endgame'}
                     </Badge>
                     <span className="text-[10px] text-text-muted">{new Date(rating.date_received).toLocaleDateString()}</span>

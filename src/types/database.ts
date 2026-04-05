@@ -28,6 +28,7 @@ export interface Team {
   id: string;
   name: string;
   service_line: ServiceLine;
+  color?: string;
   created_at: string;
   updated_at: string;
 }
@@ -88,6 +89,7 @@ export interface DashboardStats {
 export interface TeamFormData {
   name: string;
   service_line: ServiceLine;
+  color?: string;
 }
 
 export interface MemberFormData {

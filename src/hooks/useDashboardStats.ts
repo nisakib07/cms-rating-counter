@@ -36,11 +36,13 @@ export function useDashboardStats() {
       setCmsEndgameRatings(ratings.filter(r => endgameTeamIds.includes(r.team_id)).length);
 
       // Team stats
-      const teamStats: TeamWithStats[] = teams.map(t => ({
-        ...t,
-        member_count: members.filter(m => m.team_id === t.id).length,
-        rating_count: ratings.filter(r => r.team_id === t.id).length,
-      })).sort((a, b) => b.rating_count - a.rating_count);
+      const teamStats: TeamWithStats[] = teams
+        .filter(t => t.name !== 'CMS Hub' && t.name !== 'CMS Endgame')
+        .map(t => ({
+          ...t,
+          member_count: members.filter(m => m.team_id === t.id).length,
+          rating_count: ratings.filter(r => r.team_id === t.id).length,
+        })).sort((a, b) => b.rating_count - a.rating_count);
       setTopTeams(teamStats);
 
       // Member stats

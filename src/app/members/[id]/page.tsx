@@ -113,7 +113,7 @@ export default function MemberProfilePage() {
               <h1 className="text-3xl font-bold text-text-primary mb-1">{member.name}</h1>
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-3">
                 <Badge variant="neutral">{member.role}</Badge>
-                <Badge variant={member.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'}>
+                <Badge variant={member.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} customColor={member.team?.color}>
                   {member.team?.name}
                 </Badge>
               </div>

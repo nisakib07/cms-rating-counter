@@ -129,7 +129,7 @@ export default function ApprovalsPage() {
               
               <div className="flex flex-col gap-3 flex-1 w-full">
                 <div className="flex flex-wrap items-center gap-3">
-                  <Badge variant={r.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'}>
+                  <Badge variant={r.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} customColor={r.team?.color}>
                     {r.team?.name || '—'}
                   </Badge>
                   <span className="text-sm font-medium text-text-primary">
