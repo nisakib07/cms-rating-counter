@@ -31,6 +31,7 @@ export default function RatingsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Rating | null>(null);
   const [form, setForm] = useState<RatingFormData>(defaultForm);
+  const [multiMemberIds, setMultiMemberIds] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [page, setPage] = useState(1);
@@ -54,7 +55,7 @@ export default function RatingsPage() {
     return matchSearch && matchTeam && matchDateFrom && matchDateTo;
   });
 
-  const openCreate = () => { setEditing(null); setForm(defaultForm); setModalOpen(true); };
+  const openCreate = () => { setEditing(null); setForm(defaultForm); setMultiMemberIds([]); setModalOpen(true); };
   const openEdit = (r: Rating) => {
     setEditing(r);
     setForm({ member_id: r.member_id, team_id: r.team_id, rating_value: r.rating_value, order_id: r.order_id || '', client_name: r.client_name || '', review_text: r.review_text || '', screenshot_url: r.screenshot_url || '', date_received: r.date_received });
@@ -64,15 +65,38 @@ export default function RatingsPage() {
   // When team changes, reset member selection since the old member may not belong to the new team
   const handleTeamChange = (teamId: string) => {
     setForm({ ...form, team_id: teamId, member_id: '' });
+    setMultiMemberIds([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-    const { error } = editing ? await updateRating(editing.id, form) : await createRating(form);
-    setSaving(false);
-    if (error) showToast(error, 'error');
-    else { showToast(editing ? 'Rating updated' : 'Rating added', 'success'); setModalOpen(false); }
+    if (!editing) {
+      if (multiMemberIds.length === 0) return showToast("Select at least one member", "error");
+      setSaving(true);
+      let hasError = false;
+      for (const mId of multiMemberIds) {
+        const { error } = await createRating({ ...form, member_id: mId });
+        if (error) { 
+          if (error.includes('unique') || error.includes('23505')) {
+            showToast('A rating mapping for one of these members already exists on this Order ID.', 'error');
+          } else {
+            showToast(error, 'error'); 
+          }
+          hasError = true; 
+          break; 
+        }
+      }
+      setSaving(false);
+      if (!hasError) { showToast('Ratings added', 'success'); setModalOpen(false); }
+    } else {
+      setSaving(true);
+      const { error } = await updateRating(editing.id, form);
+      setSaving(false);
+      if (error) {
+        if (error.includes('unique') || error.includes('23505')) showToast('Duplicate entry for this order ID.', 'error');
+        else showToast(error, 'error');
+      } else { showToast('Rating updated', 'success'); setModalOpen(false); }
+    }
   };
 
   const handleDelete = async () => {
@@ -200,7 +224,41 @@ export default function RatingsPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select label="Team" value={form.team_id} onChange={handleTeamChange} options={teamOptions} placeholder="Select team" required id="rating-team" />
-            <Select label="Member" value={form.member_id} onChange={v => setForm({ ...form, member_id: v })} options={memberOptions} placeholder={form.team_id ? 'Select member' : 'Select a team first'} required id="rating-member" />
+            {editing ? (
+              <Select label="Member" value={form.member_id} onChange={v => setForm({ ...form, member_id: v })} options={memberOptions} placeholder={form.team_id ? 'Select member' : 'Select a team first'} required id="rating-member" />
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-text-secondary">Members <span className="text-text-muted font-normal">(Select all that apply)</span></label>
+                {!form.team_id ? (
+                  <div className="text-sm text-text-muted mt-2">Select a team first.</div>
+                ) : members.filter(m => m.team_id === form.team_id).length === 0 ? (
+                  <div className="text-sm text-text-muted mt-2">No members found in this team.</div>
+                ) : (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {members.filter(m => m.team_id === form.team_id).map(m => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => {
+                          if (multiMemberIds.includes(m.id)) {
+                            setMultiMemberIds(multiMemberIds.filter(id => id !== m.id));
+                          } else {
+                            setMultiMemberIds([...multiMemberIds, m.id]);
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                          multiMemberIds.includes(m.id) 
+                            ? 'bg-primary text-white shadow-lg shadow-primary/20 border-primary' 
+                            : 'bg-surface border-border text-text-muted hover:text-text-primary hover:bg-white/[0.04]'
+                        } border`}
+                      >
+                        {m.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Select label="Rating" value={String(form.rating_value)} onChange={v => setForm({ ...form, rating_value: Number(v) })} options={[{value:'5',label:'⭐⭐⭐⭐⭐ (5)'},{value:'4',label:'⭐⭐⭐⭐ (4)'},{value:'3',label:'⭐⭐⭐ (3)'},{value:'2',label:'⭐⭐ (2)'},{value:'1',label:'⭐ (1)'}]} id="rating-value" />
@@ -218,8 +276,8 @@ export default function RatingsPage() {
             )}
           </div>
           <div className="flex gap-3 justify-end mt-2">
-            <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Saving...' : editing ? 'Update' : 'Add'}</Button>
+            <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={saving || (!editing && multiMemberIds.length === 0)}>{saving ? 'Saving...' : editing ? 'Update' : 'Add'}</Button>
           </div>
         </form>
       </Modal>

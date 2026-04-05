@@ -18,7 +18,7 @@ export default function SubmitRatingPage() {
 
   const [serviceLine, setServiceLine] = useState('');
   const [teamId, setTeamId] = useState('');
-  const [memberId, setMemberId] = useState('');
+  const [memberIds, setMemberIds] = useState<string[]>([]);
   const [ratingValue, setRatingValue] = useState(5);
   const [orderId, setOrderId] = useState('');
   const [clientName, setClientName] = useState('');
@@ -32,12 +32,12 @@ export default function SubmitRatingPage() {
   // Reset team and member when service line changes
   useEffect(() => {
     setTeamId('');
-    setMemberId('');
+    setMemberIds([]);
   }, [serviceLine]);
 
   // Reset member when team changes
   useEffect(() => {
-    setMemberId('');
+    setMemberIds([]);
   }, [teamId]);
 
   const filteredTeams = teams.filter(t => t.service_line === serviceLine && t.name !== 'CMS Hub' && t.name !== 'CMS Endgame');
@@ -45,13 +45,13 @@ export default function SubmitRatingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!memberId || !teamId || !orderId) return;
+    if (memberIds.length === 0 || !teamId || !orderId) return;
 
     setSubmitting(true);
     
     try {
-      const payload = {
-        member_id: memberId,
+      const payloads = memberIds.map(mId => ({
+        member_id: mId,
         team_id: teamId,
         rating_value: ratingValue,
         order_id: orderId,
@@ -60,9 +60,9 @@ export default function SubmitRatingPage() {
         screenshot_url: screenshotUrl || null,
         date_received: dateReceived,
         status: 'pending'
-      };
+      }));
 
-      const { error } = await supabase.from('ratings').insert(payload);
+      const { error } = await supabase.from('ratings').insert(payloads);
       
       if (error) {
         if (error.code === '23505' || error.message.includes('unique')) {
@@ -141,16 +141,37 @@ export default function SubmitRatingPage() {
               />
             </div>
 
-            <Select 
-              label="Member" 
-              value={memberId} 
-              onChange={setMemberId} 
-              options={filteredMembers.map(m => ({value: m.id, label: m.name}))} 
-              placeholder={teamId ? "Select member" : "Select team first"} 
-              disabled={!teamId || membersLoading}
-              required 
-              id="submit-member" 
-            />
+            <div className="flex flex-col gap-1.5 min-h-[70px]">
+              <label className="text-sm font-medium text-text-secondary">Members <span className="text-text-muted font-normal">(Select all that collaborated)</span></label>
+              {!teamId ? (
+                <div className="text-sm text-text-muted mt-2">Select a team first to view members.</div>
+              ) : filteredMembers.length === 0 ? (
+                <div className="text-sm text-text-muted mt-2">No members found in this team.</div>
+              ) : (
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {filteredMembers.map(m => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => {
+                        if (memberIds.includes(m.id)) {
+                          setMemberIds(memberIds.filter(id => id !== m.id));
+                        } else {
+                          setMemberIds([...memberIds, m.id]);
+                        }
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                        memberIds.includes(m.id) 
+                          ? 'bg-primary text-white shadow-lg shadow-primary/20 border-primary' 
+                          : 'bg-surface border-border text-text-muted hover:text-text-primary hover:bg-white/[0.04]'
+                      } border`}
+                    >
+                      {m.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               <Select 
@@ -219,7 +240,7 @@ export default function SubmitRatingPage() {
 
             <div className="flex gap-3 justify-end mt-4 pt-4 border-t border-white/[0.04]">
               <Button type="button" variant="ghost" onClick={() => router.push('/')}>Cancel</Button>
-              <Button type="submit" disabled={submitting || !memberId || !teamId || !orderId}>
+              <Button type="submit" disabled={submitting || memberIds.length === 0 || !teamId || !orderId}>
                 {submitting ? 'Submitting...' : 'Submit Rating'}
               </Button>
             </div>
