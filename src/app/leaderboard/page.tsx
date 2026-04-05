@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Star, ArrowLeft, Trophy, ArrowUpDown, Users } from 'lucide-react';
+import { Star, ArrowLeft, Trophy, ArrowUpDown, Users, Calendar } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toDriveDirectUrl } from '@/lib/utils';
 import Badge from '@/components/ui/Badge';
@@ -21,6 +21,8 @@ export default function LeaderboardPage() {
   const [filterLine, setFilterLine] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('rating_count');
   const [sortAsc, setSortAsc] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
     async function fetch() {
@@ -38,14 +40,24 @@ export default function LeaderboardPage() {
   }, []);
 
   const leaderboard = useMemo(() => {
+    // Filter ratings based on date range
+    const filteredRatings = ratings.filter(r => {
+      const matchFrom = !dateFrom || r.date_received >= dateFrom;
+      const matchTo = !dateTo || r.date_received <= dateTo;
+      return matchFrom && matchTo;
+    });
+
     let list = members.map(m => ({
       ...m,
-      rating_count: ratings.filter(r => r.member_id === m.id).length,
+      rating_count: filteredRatings.filter(r => r.member_id === m.id).length,
     }));
 
-    // Filters
+    // Filter by member's team/service line
     if (filterTeam) list = list.filter(m => m.team_id === filterTeam);
     if (filterLine) list = list.filter(m => m.team?.service_line === filterLine);
+
+    // Only show members who actually have ratings in this period when a date is selected, optionally? 
+    // Actually typically the leaderboard shows 0 as well. But let's leave it as is so 0-count members drop to the bottom.
 
     // Sort
     list.sort((a, b) => {
@@ -54,7 +66,7 @@ export default function LeaderboardPage() {
     });
 
     return list;
-  }, [members, ratings, filterTeam, filterLine, sortKey, sortAsc]);
+  }, [members, ratings, filterTeam, filterLine, sortKey, sortAsc, dateFrom, dateTo]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortAsc(!sortAsc);
@@ -108,9 +120,22 @@ export default function LeaderboardPage() {
         </div>
 
         {/* Filters */}
-        <div className="glass rounded-xl p-4 mb-6 flex flex-wrap gap-3 animate-fade-in">
+        <div className="glass rounded-xl p-4 mb-6 flex flex-wrap gap-3 animate-fade-in items-center">
           <Select value={filterLine} onChange={setFilterLine} placeholder="All Service Lines" options={[{ value: 'CMS Hub', label: 'CMS Hub' }, { value: 'CMS Endgame', label: 'CMS Endgame' }]} />
           <Select value={filterTeam} onChange={setFilterTeam} placeholder="All Teams" options={teamOptions} />
+          
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <Calendar size={14} className="text-text-muted" />
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-[130px] px-2.5 py-2 rounded-lg bg-surface border border-border text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+            </div>
+            <span className="text-text-muted text-xs">to</span>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-[130px] px-2.5 py-2 rounded-lg bg-surface border border-border text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+            {(dateFrom || dateTo) && (
+              <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="px-2 py-2 rounded-lg text-xs text-text-muted hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer">Clear</button>
+            )}
+          </div>
+
           <div className="flex items-center gap-2 ml-auto">
             <span className="text-xs text-text-muted">Sort:</span>
             <button
