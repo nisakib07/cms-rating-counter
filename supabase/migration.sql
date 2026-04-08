@@ -47,7 +47,7 @@ CREATE INDEX IF NOT EXISTS idx_ratings_member_id ON ratings(member_id);
 CREATE INDEX IF NOT EXISTS idx_ratings_team_id ON ratings(team_id);
 CREATE INDEX IF NOT EXISTS idx_members_team_id ON members(team_id);
 CREATE INDEX IF NOT EXISTS idx_ratings_date_received ON ratings(date_received);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_ratings_order_member ON ratings(order_id, member_id) WHERE order_id IS NOT NULL AND order_id != '';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ratings_order_member ON ratings(order_id, member_id) WHERE order_id IS NOT NULL AND order_id != '' AND status != 'rejected';
 
 -- Enable Row Level Security
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
