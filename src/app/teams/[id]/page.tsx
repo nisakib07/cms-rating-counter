@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Star, ArrowLeft, Users, Calendar, BarChart3 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { supabase } from '@/lib/supabase';
-import { toDriveDirectUrl } from '@/lib/utils';
+import { toDriveDirectUrl, countUniqueOrderIds } from '@/lib/utils';
 import Badge from '@/components/ui/Badge';
 import type { Team, Member, Rating } from '@/types/database';
 
@@ -67,7 +67,7 @@ export default function TeamProfilePage() {
   const memberChartData = members.map(m => ({
     name: m.name.length > 12 ? m.name.substring(0, 12) + '…' : m.name,
     fullName: m.name,
-    ratings: ratings.filter(r => r.member_id === m.id).length,
+    ratings: countUniqueOrderIds(ratings.filter(r => r.member_id === m.id)),
   })).sort((a, b) => b.ratings - a.ratings);
 
   return (
@@ -110,7 +110,7 @@ export default function TeamProfilePage() {
             </div>
             <div className="flex gap-6 text-center shrink-0">
               <div>
-                <div className="text-3xl font-extrabold text-primary-light">{ratings.length}</div>
+                <div className="text-3xl font-extrabold text-primary-light">{countUniqueOrderIds(ratings)}</div>
                 <div className="text-xs text-text-muted uppercase tracking-wider">Ratings</div>
               </div>
               <div>
@@ -131,7 +131,7 @@ export default function TeamProfilePage() {
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {members.map(m => {
-              const memberRatingCount = ratings.filter(r => r.member_id === m.id).length;
+              const memberRatingCount = countUniqueOrderIds(ratings.filter(r => r.member_id === m.id));
               return (
                 <Link
                   key={m.id}
@@ -203,7 +203,7 @@ export default function TeamProfilePage() {
             <div className="w-9 h-9 rounded-xl bg-warning/15 flex items-center justify-center">
               <Star size={18} className="text-warning" />
             </div>
-            Team Ratings ({ratings.length})
+            Team Ratings ({countUniqueOrderIds(ratings)})
           </h3>
           {ratings.length > 0 ? (
             <div className="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-2">

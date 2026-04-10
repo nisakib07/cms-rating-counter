@@ -25,6 +25,7 @@ export default function MembersPage() {
   const { showToast } = useToast();
   const [search, setSearch] = useState('');
   const [filterTeam, setFilterTeam] = useState('');
+  const [filterLine, setFilterLine] = useState('');
   const [filterRole, setFilterRole] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Member | null>(null);
@@ -47,8 +48,9 @@ export default function MembersPage() {
   const filtered = members.filter(m => {
     const matchSearch = m.name.toLowerCase().includes(search.toLowerCase()) || (m.email || '').toLowerCase().includes(search.toLowerCase()) || (m.member_id || '').toLowerCase().includes(search.toLowerCase());
     const matchTeam = !filterTeam || m.team_id === filterTeam;
+    const matchLine = !filterLine || m.team?.service_line === filterLine;
     const matchRole = !filterRole || m.role === filterRole;
-    return matchSearch && matchTeam && matchRole;
+    return matchSearch && matchTeam && matchLine && matchRole;
   });
 
   const openCreate = () => { setEditing(null); setForm(defaultForm); setModalOpen(true); };
@@ -119,8 +121,9 @@ export default function MembersPage() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, email, or ID..." className="w-full pl-10 pr-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm" />
         </div>
-        <Select value={filterTeam} onChange={setFilterTeam} placeholder="All Teams" options={searchTeamOptions} />
-        <Select value={filterRole} onChange={setFilterRole} placeholder="All Roles" options={roleOptions} />
+        <Select value={filterLine} onChange={v => { setFilterLine(v); setPage(1); }} placeholder="All Service Lines" options={[{ value: 'CMS Hub', label: 'CMS Hub' }, { value: 'CMS Endgame', label: 'CMS Endgame' }]} />
+        <Select value={filterTeam} onChange={v => { setFilterTeam(v); setPage(1); }} placeholder="All Teams" options={searchTeamOptions} />
+        <Select value={filterRole} onChange={v => { setFilterRole(v); setPage(1); }} placeholder="All Roles" options={roleOptions} />
       </div>
 
       <div className="glass rounded-2xl overflow-hidden">

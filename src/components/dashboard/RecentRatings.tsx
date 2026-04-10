@@ -5,23 +5,24 @@ import { Star, Clock, ExternalLink, FileText, Quote, User, Hash, ChevronLeft, Ch
 import type { Rating } from '@/types/database';
 import Badge from '@/components/ui/Badge';
 import { toDriveDirectUrl } from '@/lib/utils';
+import ScreenshotLightbox from '@/components/ui/ScreenshotLightbox';
 
 interface RecentRatingsProps {
   ratings: Rating[];
 }
 
-function RatingCard({ rating, index }: { rating: Rating; index: number }) {
+function RatingCard({ rating, index, onOpenLightbox }: { rating: Rating; index: number; onOpenLightbox: () => void }) {
   const [imgError, setImgError] = useState(false);
   const screenshotSrc = rating.screenshot_url ? toDriveDirectUrl(rating.screenshot_url) : null;
   const profileSrc = rating.member?.profile_image ? toDriveDirectUrl(rating.member.profile_image) : null;
 
   return (
     <div
-      className="group glass rounded-2xl overflow-hidden border border-white/[0.04] hover:border-white/[0.12] transition-all duration-500 animate-fade-in flex flex-col"
+      className="group glass rounded-2xl overflow-hidden border border-white/[0.04] hover:border-white/[0.12] transition-all duration-500 animate-fade-in flex flex-col card-hover"
       style={{ animationDelay: `${index * 80}ms` }}
     >
       {/* Screenshot Hero */}
-      <div className="relative w-full aspect-[16/10] bg-surface overflow-hidden">
+      <div className="relative w-full aspect-[16/10] bg-surface overflow-hidden cursor-pointer" onClick={onOpenLightbox}>
         {screenshotSrc && !imgError ? (
           <img
             src={screenshotSrc}
@@ -126,6 +127,7 @@ export default function RecentRatings({ ratings }: RecentRatingsProps) {
   const [page, setPage] = useState(0);
   const totalPages = Math.ceil(ratings.length / CARDS_PER_PAGE);
   const visible = ratings.slice(page * CARDS_PER_PAGE, (page + 1) * CARDS_PER_PAGE);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   return (
     <div className="glass rounded-2xl p-7 animate-fade-in delay-500 relative overflow-hidden">
@@ -171,7 +173,7 @@ export default function RecentRatings({ ratings }: RecentRatingsProps) {
       {ratings.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {visible.map((rating, i) => (
-            <RatingCard key={rating.id} rating={rating} index={i} />
+            <RatingCard key={rating.id} rating={rating} index={i} onOpenLightbox={() => setLightboxIndex(page * CARDS_PER_PAGE + i)} />
           ))}
         </div>
       ) : (
@@ -182,6 +184,15 @@ export default function RecentRatings({ ratings }: RecentRatingsProps) {
           <p className="text-sm font-medium">No ratings recorded yet</p>
           <p className="text-xs text-text-muted/60">Add ratings from the admin panel to see them here</p>
         </div>
+      )}
+
+      {/* Lightbox */}
+      {lightboxIndex !== null && (
+        <ScreenshotLightbox
+          ratings={ratings}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
       )}
     </div>
   );

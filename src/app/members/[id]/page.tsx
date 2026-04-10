@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Star, ArrowLeft, Users, Calendar, TrendingUp } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/lib/supabase';
-import { toDriveDirectUrl } from '@/lib/utils';
+import { toDriveDirectUrl, countUniqueOrderIds } from '@/lib/utils';
 import Badge from '@/components/ui/Badge';
 import type { Member, Rating } from '@/types/database';
 
@@ -121,7 +121,7 @@ export default function MemberProfilePage() {
             </div>
             <div className="flex gap-6 text-center shrink-0">
               <div>
-                <div className="text-3xl font-extrabold text-primary-light">{ratings.length}</div>
+                <div className="text-3xl font-extrabold text-primary-light">{countUniqueOrderIds(ratings)}</div>
                 <div className="text-xs text-text-muted uppercase tracking-wider">Ratings</div>
               </div>
               <div>
@@ -164,7 +164,7 @@ export default function MemberProfilePage() {
             <div className="w-9 h-9 rounded-xl bg-warning/15 flex items-center justify-center">
               <Star size={18} className="text-warning" />
             </div>
-            All Ratings ({ratings.length})
+            All Ratings ({countUniqueOrderIds(ratings)})
           </h3>
           {ratings.length > 0 ? (
             <div className="flex flex-col gap-3">

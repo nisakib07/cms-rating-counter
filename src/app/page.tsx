@@ -1,6 +1,7 @@
 'use client';
 
-import { Star, TrendingUp, Zap, Shield, ArrowRight, ArrowUpRight, ArrowDownRight, Trophy } from 'lucide-react';
+import { useState } from 'react';
+import { Star, TrendingUp, Zap, Shield, ArrowRight, ArrowUpRight, ArrowDownRight, Trophy, Menu, X, Plus } from 'lucide-react';
 import Link from 'next/link';
 import StatsCard from '@/components/dashboard/StatsCard';
 import LeaderboardCard from '@/components/dashboard/LeaderboardCard';
@@ -15,6 +16,7 @@ import { useDashboardStats } from '@/hooks/useDashboardStats';
 
 export default function PublicDashboard() {
   const { totalRatings, cmsHubRatings, cmsEndgameRatings, topTeams, topMembers, recentRatings, allRatings, loading } = useDashboardStats();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Calculate this month vs last month
   const now = new Date();
@@ -37,7 +39,7 @@ export default function PublicDashboard() {
 
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-white/[0.06]" style={{ background: 'rgba(11, 17, 32, 0.8)', backdropFilter: 'blur(20px)' }}>
-        <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
@@ -45,26 +47,63 @@ export default function PublicDashboard() {
               </div>
               <span className="font-bold text-lg text-text-primary tracking-tight">StarLedger</span>
             </div>
-            <div className="flex items-center gap-3">
+            {/* Desktop nav */}
+            <div className="hidden sm:flex items-center gap-3">
               <GlobalSearch />
-              <Link href="/leaderboard" className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.1] transition-all duration-300">
+              <Link href="/leaderboard" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.1] transition-all duration-300 btn-press">
                 <Trophy size={14} />
                 Leaderboard
               </Link>
               <ThemeToggle />
-              <Link href="/submit" className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white bg-primary hover:bg-primary-hover border border-primary-light/20 transition-all duration-300 shadow-lg shadow-primary/25">
+              <Link href="/submit" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white bg-primary hover:bg-primary-hover border border-primary-light/20 transition-all duration-300 shadow-lg shadow-primary/25 btn-press">
                 <Star size={14} fill="currentColor" />
                 Submit Rating
               </Link>
-              <Link href="/admin" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.1] transition-all duration-300">
+              <Link href="/admin" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.1] transition-all duration-300 btn-press">
                 <Shield size={14} />
-                <span className="hidden sm:inline">Admin</span>
+                Admin
                 <ArrowRight size={14} />
               </Link>
             </div>
+            {/* Mobile nav toggle */}
+            <div className="flex sm:hidden items-center gap-2">
+              <ThemeToggle />
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/[0.04] border border-white/[0.06] text-text-secondary hover:text-text-primary transition-all"
+              >
+                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Mobile menu panel */}
+        {mobileMenuOpen && (
+          <div className="sm:hidden border-t border-white/[0.06] animate-fade-in" style={{ animationDuration: '0.2s' }}>
+            <div className="max-w-[1400px] mx-auto px-4 py-4 flex flex-col gap-2">
+              <div className="mb-2"><GlobalSearch /></div>
+              <Link href="/leaderboard" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-white/[0.04] transition-all">
+                <Trophy size={16} /> Leaderboard
+              </Link>
+              <Link href="/submit" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-all">
+                <Star size={16} fill="currentColor" /> Submit Rating
+              </Link>
+              <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-white/[0.04] transition-all">
+                <Shield size={16} /> Admin Panel
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
+
+      {/* Mobile floating FAB */}
+      <Link
+        href="/submit"
+        className="fixed bottom-6 right-6 z-40 sm:hidden w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-xl shadow-primary/30 btn-press animate-fade-in"
+      >
+        <Plus size={24} className="text-white" />
+      </Link>
 
       {/* Hero */}
       <section className="relative overflow-hidden pt-16 pb-12 lg:pt-24 lg:pb-16">

@@ -26,7 +26,7 @@ export default function LeaderboardCard({ topMember, topTeam }: LeaderboardCardP
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
         {/* Top Member */}
-        <div className="relative bg-gradient-to-br from-warning/10 via-warning/5 to-transparent rounded-2xl p-5 border border-warning/10 overflow-hidden group hover:border-warning/20 transition-all duration-300">
+        <div className="relative bg-gradient-to-br from-warning/10 via-warning/5 to-transparent rounded-2xl p-5 border border-warning/10 overflow-hidden group hover:border-warning/20 transition-all duration-300 card-hover">
           <div className="absolute top-3 right-3">
             <Crown size={28} className="text-warning/20 group-hover:text-warning/40 transition-colors" />
           </div>
@@ -53,7 +53,7 @@ export default function LeaderboardCard({ topMember, topTeam }: LeaderboardCardP
         </div>
 
         {/* Top Team */}
-        <div className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-2xl p-5 border border-primary/10 overflow-hidden group hover:border-primary/20 transition-all duration-300">
+        <div className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-2xl p-5 border border-primary/10 overflow-hidden group hover:border-primary/20 transition-all duration-300 card-hover">
           <div className="absolute top-3 right-3">
             <Users size={28} className="text-primary/20 group-hover:text-primary/40 transition-colors" />
           </div>

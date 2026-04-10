@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Star, ArrowLeft, Trophy, ArrowUpDown, Users, Calendar } from 'lucide-react';
+import { Star, ArrowLeft, Trophy, ArrowUpDown, Users, Calendar, Download } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { toDriveDirectUrl } from '@/lib/utils';
+import { toDriveDirectUrl, countUniqueOrderIds, exportToCSV } from '@/lib/utils';
 import Badge from '@/components/ui/Badge';
 import AnimatedCounter from '@/components/ui/AnimatedCounter';
 import { Select } from '@/components/ui/Input';
@@ -49,7 +49,7 @@ export default function LeaderboardPage() {
 
     let list = members.map(m => ({
       ...m,
-      rating_count: filteredRatings.filter(r => r.member_id === m.id).length,
+      rating_count: countUniqueOrderIds(filteredRatings.filter(r => r.member_id === m.id)),
     }));
 
     // Filter by member's team/service line
@@ -117,6 +117,12 @@ export default function LeaderboardPage() {
             <span className="gradient-text">Leaderboard</span>
           </h1>
           <p className="text-text-secondary text-base">All members ranked by their 5-star ratings</p>
+          <button
+            onClick={() => exportToCSV(leaderboard.map((m, i) => ({ rank: i + 1, name: m.name, team: m.team?.name || '', service_line: m.team?.service_line || '', role: m.role, ratings: m.rating_count })), 'starledger_leaderboard')}
+            className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-xl text-sm font-medium text-text-secondary bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.1] transition-all btn-press"
+          >
+            <Download size={14} /> Export CSV
+          </button>
         </div>
 
         {/* Filters */}
@@ -164,7 +170,7 @@ export default function LeaderboardPage() {
               <Link
                 key={m.id}
                 href={`/members/${m.id}`}
-                className="glass rounded-xl p-4 sm:p-5 flex items-center gap-4 hover:bg-glass-light transition-all group"
+                className="glass rounded-xl p-4 sm:p-5 flex items-center gap-4 hover:bg-glass-light transition-all group card-hover"
                 style={{ animationDelay: `${i * 40}ms` }}
               >
                 <div className="w-10 flex items-center justify-center shrink-0">

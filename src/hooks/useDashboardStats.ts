@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { TeamWithStats, MemberWithStats, Rating } from '@/types/database';
+import { countUniqueOrderIds } from '@/lib/utils';
 
 export function useDashboardStats() {
   const [totalRatings, setTotalRatings] = useState(0);
@@ -27,19 +28,13 @@ export function useDashboardStats() {
       .order('date_received', { ascending: false });
 
     if (teams && members && ratings) {
-      // Helper to count unique orders from a subset of ratings
-      const countUniqueOrders = (ratingSubset: Rating[]) => {
-        const validOrders = ratingSubset.filter(r => r.order_id).map(r => r.order_id as string);
-        return new Set(validOrders).size;
-      };
-
-      setTotalRatings(countUniqueOrders(ratings));
+      setTotalRatings(countUniqueOrderIds(ratings));
 
       // Service line counts
       const hubTeamIds = teams.filter(t => t.service_line === 'CMS Hub').map(t => t.id);
       const endgameTeamIds = teams.filter(t => t.service_line === 'CMS Endgame').map(t => t.id);
-      setCmsHubRatings(countUniqueOrders(ratings.filter(r => hubTeamIds.includes(r.team_id))));
-      setCmsEndgameRatings(countUniqueOrders(ratings.filter(r => endgameTeamIds.includes(r.team_id))));
+      setCmsHubRatings(countUniqueOrderIds(ratings.filter(r => hubTeamIds.includes(r.team_id))));
+      setCmsEndgameRatings(countUniqueOrderIds(ratings.filter(r => endgameTeamIds.includes(r.team_id))));
 
       // Team stats
       const teamStats: TeamWithStats[] = teams
@@ -47,14 +42,14 @@ export function useDashboardStats() {
         .map(t => ({
           ...t,
           member_count: members.filter(m => m.team_id === t.id).length,
-          rating_count: countUniqueOrders(ratings.filter(r => r.team_id === t.id)),
+          rating_count: countUniqueOrderIds(ratings.filter(r => r.team_id === t.id)),
         })).sort((a, b) => b.rating_count - a.rating_count);
       setTopTeams(teamStats);
 
       // Member stats
       const memberStats: MemberWithStats[] = members.map(m => ({
         ...m,
-        rating_count: ratings.filter(r => r.member_id === m.id).length,
+        rating_count: countUniqueOrderIds(ratings.filter(r => r.member_id === m.id)),
       })).sort((a, b) => b.rating_count - a.rating_count);
       setTopMembers(memberStats);
 

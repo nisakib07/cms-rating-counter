@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Check, X, Search, Image, ExternalLink } from 'lucide-react';
+import { Select } from '@/components/ui/Input';
 import { useRatings } from '@/hooks/useRatings';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -19,6 +20,7 @@ export default function ApprovalsPage() {
   const [currentMember, setCurrentMember] = useState<Member | null>(null);
   const [loadingMember, setLoadingMember] = useState(true);
   const [search, setSearch] = useState('');
+  const [filterLine, setFilterLine] = useState('');
   
   const [actionId, setActionId] = useState<string | null>(null);
   const [actionType, setActionType] = useState<'approved' | 'rejected' | null>(null);
@@ -85,7 +87,8 @@ export default function ApprovalsPage() {
     const matchSearch = (r.client_name || '').toLowerCase().includes(search.toLowerCase()) 
       || (r.order_id || '').toLowerCase().includes(search.toLowerCase()) 
       || (r.member?.name || '').toLowerCase().includes(search.toLowerCase());
-    return matchSearch;
+    const matchLine = !filterLine || r.team?.service_line === filterLine;
+    return matchSearch && matchLine;
   });
 
   const isLoading = ratingsLoading || loadingMember;
@@ -99,8 +102,8 @@ export default function ApprovalsPage() {
         </div>
       </div>
 
-      <div className="glass rounded-xl p-4 mb-6">
-        <div className="relative max-w-md">
+      <div className="glass rounded-xl p-4 mb-6 flex flex-wrap gap-3 items-center">
+        <div className="relative flex-1 min-w-[200px]">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input 
             value={search} 
@@ -109,6 +112,7 @@ export default function ApprovalsPage() {
             className="w-full pl-10 pr-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm" 
           />
         </div>
+        <Select value={filterLine} onChange={setFilterLine} placeholder="All Service Lines" options={[{ value: 'CMS Hub', label: 'CMS Hub' }, { value: 'CMS Endgame', label: 'CMS Endgame' }]} />
       </div>
 
       <div className="grid grid-cols-1 gap-4">

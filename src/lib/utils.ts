@@ -16,6 +16,14 @@ export function toDriveDirectUrl(url: string): string {
   return url;
 }
 
+// Count unique order IDs from a list of ratings.
+// When multiple members collaborate on the same order, each gets a separate row,
+// but the team/total should only count each order once.
+export function countUniqueOrderIds(ratings: { order_id: string | null }[]): number {
+  const validOrders = ratings.filter(r => r.order_id).map(r => r.order_id as string);
+  return new Set(validOrders).size;
+}
+
 // Export data array to CSV and trigger download
 export function exportToCSV(data: Record<string, string | number | null | undefined>[], filename: string) {
   if (data.length === 0) return;

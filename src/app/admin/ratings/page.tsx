@@ -26,6 +26,7 @@ export default function RatingsPage() {
   const { showToast } = useToast();
   const [search, setSearch] = useState('');
   const [filterTeam, setFilterTeam] = useState('');
+  const [filterLine, setFilterLine] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -50,9 +51,10 @@ export default function RatingsPage() {
   const filtered = ratings.filter(r => {
     const matchSearch = (r.client_name || '').toLowerCase().includes(search.toLowerCase()) || (r.order_id || '').toLowerCase().includes(search.toLowerCase()) || (r.member?.name || '').toLowerCase().includes(search.toLowerCase());
     const matchTeam = !filterTeam || r.team_id === filterTeam;
+    const matchLine = !filterLine || r.team?.service_line === filterLine;
     const matchDateFrom = !dateFrom || r.date_received >= dateFrom;
     const matchDateTo = !dateTo || r.date_received <= dateTo;
-    return matchSearch && matchTeam && matchDateFrom && matchDateTo;
+    return matchSearch && matchTeam && matchLine && matchDateFrom && matchDateTo;
   });
 
   const openCreate = () => { setEditing(null); setForm(defaultForm); setMultiMemberIds([]); setModalOpen(true); };
@@ -136,7 +138,8 @@ export default function RatingsPage() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by member, client, order ID..." className="w-full pl-10 pr-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm" />
         </div>
-        <Select value={filterTeam} onChange={setFilterTeam} placeholder="All Teams" options={teamOptions} />
+        <Select value={filterLine} onChange={v => { setFilterLine(v); setPage(1); }} placeholder="All Service Lines" options={[{ value: 'CMS Hub', label: 'CMS Hub' }, { value: 'CMS Endgame', label: 'CMS Endgame' }]} />
+        <Select value={filterTeam} onChange={v => { setFilterTeam(v); setPage(1); }} placeholder="All Teams" options={teamOptions} />
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
             <Calendar size={14} className="text-text-muted" />
