@@ -14,7 +14,7 @@ import Badge from '@/components/ui/Badge';
 import Pagination from '@/components/ui/Pagination';
 import type { Member, MemberFormData, MemberRole } from '@/types/database';
 import { ALL_ROLES, isAdminRole, isSuperAdmin as isSuperAdminEmail } from '@/types/database';
-import { toDriveDirectUrl, exportToCSV } from '@/lib/utils';
+import { toDriveDirectUrl, exportToCSV, isActualTeam } from '@/lib/utils';
 
 const defaultForm: MemberFormData = { member_id: '', name: '', email: '', role: 'Developer', team_id: '', profile_image: '', joined_at: new Date().toISOString().split('T')[0] };
 
@@ -79,7 +79,7 @@ export default function MembersPage() {
     setDeleteId(null);
   };
 
-  const searchTeamOptions = teams.map(t => ({ value: t.id, label: `${t.name} (${t.service_line})` }));
+  const searchTeamOptions = teams.filter(t => isActualTeam(t)).map(t => ({ value: t.id, label: `${t.name} (${t.service_line})` }));
   const formTeamOptions = teams
     .filter(t => {
       if (form.role === 'Project Manager' || form.role === 'Operations Manager') {

@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/Toast';
 import Button from '@/components/ui/Button';
 import { Input, Select, Textarea } from '@/components/ui/Input';
 import { Star, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { isActualTeam } from '@/lib/utils';
 
 export default function SubmitRatingPage() {
   const { teams, loading: teamsLoading } = useTeams();
@@ -40,7 +41,7 @@ export default function SubmitRatingPage() {
     setMemberIds([]);
   }, [teamId]);
 
-  const filteredTeams = teams.filter(t => t.service_line === serviceLine && t.name !== 'CMS Hub' && t.name !== 'CMS Endgame');
+  const filteredTeams = teams.filter(t => t.service_line === serviceLine && isActualTeam(t));
   const filteredMembers = members.filter(m => m.team_id === teamId);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -232,11 +233,6 @@ export default function SubmitRatingPage() {
                 required
                 id="submit-screenshot" 
               />
-              {screenshotUrl && (
-                <div className="mt-3 rounded-xl overflow-hidden border border-border bg-surface relative aspect-video sm:aspect-auto sm:h-48">
-                  <img src={screenshotUrl} alt="Screenshot preview" className="w-full h-full object-contain mx-auto" onError={e => (e.currentTarget.style.display = 'none')} />
-                </div>
-              )}
             </div>
 
             <div className="flex gap-3 justify-end mt-4 pt-4 border-t border-white/[0.04]">

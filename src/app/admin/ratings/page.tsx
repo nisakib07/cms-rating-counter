@@ -14,7 +14,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Badge from '@/components/ui/Badge';
 import Pagination from '@/components/ui/Pagination';
 import type { Rating, RatingFormData } from '@/types/database';
-import { toDriveDirectUrl, exportToCSV } from '@/lib/utils';
+import { toDriveDirectUrl, exportToCSV, isActualTeam } from '@/lib/utils';
 
 const defaultForm: RatingFormData = { member_id: '', team_id: '', rating_value: 5, order_id: '', client_name: '', review_text: '', screenshot_url: '', date_received: new Date().toISOString().split('T')[0] };
 
@@ -111,7 +111,7 @@ export default function RatingsPage() {
     setDeleteId(null);
   };
 
-  const teamOptions = teams.map(t => ({ value: t.id, label: `${t.name} (${t.service_line})` }));
+  const teamOptions = teams.filter(t => isActualTeam(t)).map(t => ({ value: t.id, label: `${t.name} (${t.service_line})` }));
   // Only show members belonging to the selected team
   const memberOptions = form.team_id
     ? members.filter(m => m.team_id === form.team_id).map(m => ({ value: m.id, label: m.name }))
@@ -270,14 +270,7 @@ export default function RatingsPage() {
           </div>
           <Input label="Client Name" value={form.client_name} onChange={v => setForm({ ...form, client_name: v })} placeholder="Client name" id="rating-client" />
           <Textarea label="Review Text" value={form.review_text} onChange={v => setForm({ ...form, review_text: v })} placeholder="Optional review text..." id="rating-review" />
-          <div>
-            <Input label="Screenshot URL (optional)" value={form.screenshot_url} onChange={v => setForm({ ...form, screenshot_url: v })} placeholder="https://i.imgur.com/... or any image link" id="rating-screenshot" />
-            {form.screenshot_url && (
-              <div className="mt-2 rounded-lg overflow-hidden border border-border bg-surface">
-                <img src={form.screenshot_url} alt="Screenshot preview" className="max-h-32 w-auto object-contain mx-auto" onError={e => (e.currentTarget.style.display = 'none')} />
-              </div>
-            )}
-          </div>
+          <Input label="Screenshot URL (optional)" value={form.screenshot_url} onChange={v => setForm({ ...form, screenshot_url: v })} placeholder="https://i.imgur.com/... or any image link" id="rating-screenshot" />
           <div className="flex gap-3 justify-end mt-2">
             <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button>
             <Button type="submit" disabled={saving || (!editing && multiMemberIds.length === 0)}>{saving ? 'Saving...' : editing ? 'Update' : 'Add'}</Button>

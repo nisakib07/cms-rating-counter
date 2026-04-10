@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Search, Users, UserCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { toDriveDirectUrl } from '@/lib/utils';
+import { toDriveDirectUrl, isActualTeam } from '@/lib/utils';
 import type { Member, Team } from '@/types/database';
 
 export default function GlobalSearch() {
@@ -38,7 +38,7 @@ export default function GlobalSearch() {
 
   const q = query.toLowerCase().trim();
   const filteredMembers = q ? members.filter(m => m.name.toLowerCase().includes(q) || (m.email || '').toLowerCase().includes(q)).slice(0, 5) : [];
-  const filteredTeams = q ? teams.filter(t => t.name.toLowerCase().includes(q)).slice(0, 3) : [];
+  const filteredTeams = q ? teams.filter(t => isActualTeam(t) && t.name.toLowerCase().includes(q)).slice(0, 3) : [];
   const hasResults = filteredMembers.length > 0 || filteredTeams.length > 0;
 
   return (

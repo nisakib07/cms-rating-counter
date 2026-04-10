@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { TeamWithStats, MemberWithStats, Rating } from '@/types/database';
-import { countUniqueOrderIds } from '@/lib/utils';
+import { countUniqueOrderIds, isActualTeam } from '@/lib/utils';
 
 export function useDashboardStats() {
   const [totalRatings, setTotalRatings] = useState(0);
@@ -38,7 +38,7 @@ export function useDashboardStats() {
 
       // Team stats
       const teamStats: TeamWithStats[] = teams
-        .filter(t => t.name !== 'CMS Hub' && t.name !== 'CMS Endgame')
+        .filter(t => isActualTeam(t))
         .map(t => ({
           ...t,
           member_count: members.filter(m => m.team_id === t.id).length,

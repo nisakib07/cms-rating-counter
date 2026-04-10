@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Star, ArrowLeft, Trophy, ArrowUpDown, Users, Calendar, Download } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { toDriveDirectUrl, countUniqueOrderIds, exportToCSV } from '@/lib/utils';
+import { toDriveDirectUrl, countUniqueOrderIds, exportToCSV, isActualTeam } from '@/lib/utils';
 import Badge from '@/components/ui/Badge';
 import AnimatedCounter from '@/components/ui/AnimatedCounter';
 import { Select } from '@/components/ui/Input';
@@ -73,7 +73,7 @@ export default function LeaderboardPage() {
     else { setSortKey(key); setSortAsc(false); }
   };
 
-  const teamOptions = teams.map(t => ({ value: t.id, label: `${t.name} (${t.service_line})` }));
+  const teamOptions = teams.filter(t => isActualTeam(t)).map(t => ({ value: t.id, label: `${t.name} (${t.service_line})` }));
 
   const getRankBadge = (rank: number) => {
     if (rank === 1) return <span className="text-2xl">🥇</span>;

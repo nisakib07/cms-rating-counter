@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight, ExternalLink, Star, User, Hash, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { toDriveDirectUrl } from '@/lib/utils';
 import type { Rating } from '@/types/database';
@@ -54,15 +55,15 @@ export default function ScreenshotLightbox({ ratings, initialIndex, onClose }: S
 
   if (!rating) return null;
 
-  return (
-    <div className="fixed inset-0 z-[100] flex" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex" onClick={onClose}>
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/85 backdrop-blur-md animate-fade-in" style={{ animationDuration: '0.2s' }} />
 
       {/* Close button */}
       <button
-        onClick={onClose}
-        className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-all"
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
+        className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-all cursor-pointer"
       >
         <X size={20} />
       </button>
@@ -72,13 +73,13 @@ export default function ScreenshotLightbox({ ratings, initialIndex, onClose }: S
         <>
           <button
             onClick={e => { e.stopPropagation(); goPrev(); }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-all backdrop-blur-sm"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-all backdrop-blur-sm cursor-pointer"
           >
             <ChevronLeft size={24} />
           </button>
           <button
             onClick={e => { e.stopPropagation(); goNext(); }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-all backdrop-blur-sm"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-all backdrop-blur-sm cursor-pointer"
           >
             <ChevronRight size={24} />
           </button>
@@ -206,6 +207,7 @@ export default function ScreenshotLightbox({ ratings, initialIndex, onClose }: S
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

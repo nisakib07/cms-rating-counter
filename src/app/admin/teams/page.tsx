@@ -13,7 +13,7 @@ import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Badge from '@/components/ui/Badge';
 import type { Team, TeamFormData, ServiceLine } from '@/types/database';
-import { exportToCSV } from '@/lib/utils';
+import { exportToCSV, isActualTeam } from '@/lib/utils';
 
 const defaultForm: TeamFormData = { name: '', service_line: 'CMS Hub', color: '#10b981' };
 
@@ -42,6 +42,7 @@ export default function TeamsPage() {
   }, []);
 
   const filtered = teams.filter(t => {
+    if (!isActualTeam(t)) return false;
     const matchSearch = t.name.toLowerCase().includes(search.toLowerCase());
     const matchLine = !filterLine || t.service_line === filterLine;
     return matchSearch && matchLine;

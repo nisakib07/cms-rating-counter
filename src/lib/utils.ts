@@ -47,3 +47,9 @@ export function exportToCSV(data: Record<string, string | number | null | undefi
   URL.revokeObjectURL(url);
 }
 
+// Service-line-level entries that exist in the teams table (for PM/Ops Manager assignment)
+// but are NOT actual teams and should be excluded from team lists, charts, and dropdowns.
+export const SERVICE_LINE_NAMES = ['CMS Hub', 'CMS Endgame'];
+export function isActualTeam(team: { name: string }): boolean {
+  return !SERVICE_LINE_NAMES.some(sl => sl.toLowerCase() === team.name.toLowerCase());
+}
