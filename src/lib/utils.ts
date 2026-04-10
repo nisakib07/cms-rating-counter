@@ -1,6 +1,12 @@
-// Convert Google Drive share/view links to direct image URLs
+// Convert Google Drive share/view links or Lightshot (prnt.sc) links to displayable image URLs
 export function toDriveDirectUrl(url: string): string {
   if (!url) return url;
+
+  // Handle Lightshot / prnt.sc links — route through our server-side proxy
+  if (url.includes('prnt.sc') || url.includes('lightshot')) {
+    return `/api/screenshot-proxy?url=${encodeURIComponent(url)}`;
+  }
+
   // Match: drive.google.com/file/d/FILE_ID/... or drive.google.com/open?id=FILE_ID
   const fileIdMatch = url.match(/\/file\/d\/([^/]+)/) || url.match(/[?&]id=([^&]+)/);
   if (fileIdMatch) {

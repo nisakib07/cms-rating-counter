@@ -44,7 +44,7 @@ export default function MonthlyTrendChart({ ratings }: MonthlyTrendChartProps) {
   const data = months.map(m => ({ name: m.label, ratings: m.count }));
 
   return (
-    <div className="glass rounded-2xl p-7 animate-fade-in relative overflow-hidden">
+    <div className="glass rounded-2xl p-7 animate-fade-in relative overflow-hidden h-full flex flex-col">
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary/50 via-secondary/50 to-primary/50" />
       <h3 className="text-lg font-bold text-text-primary mb-6 flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-secondary/15 flex items-center justify-center">
@@ -53,7 +53,7 @@ export default function MonthlyTrendChart({ ratings }: MonthlyTrendChartProps) {
         Rating Trends
         <span className="text-xs text-text-muted font-normal ml-auto">Last 12 months</span>
       </h3>
-      <div style={{ width: '100%', height: 260 }}>
+      <div className="flex-1" style={{ width: '100%', minHeight: 260 }}>
         {ratings.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 5, right: 10, left: -15, bottom: 5 }}>

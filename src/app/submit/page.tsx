@@ -45,7 +45,7 @@ export default function SubmitRatingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (memberIds.length === 0 || !teamId || !orderId) return;
+    if (memberIds.length === 0 || !teamId || !orderId || !screenshotUrl) return;
 
     setSubmitting(true);
     
@@ -57,7 +57,7 @@ export default function SubmitRatingPage() {
         order_id: orderId,
         client_name: clientName || null,
         review_text: reviewText || null,
-        screenshot_url: screenshotUrl || null,
+        screenshot_url: screenshotUrl,
         date_received: dateReceived,
         status: 'pending'
       }));
@@ -228,7 +228,8 @@ export default function SubmitRatingPage() {
                 label="Screenshot URL" 
                 value={screenshotUrl} 
                 onChange={setScreenshotUrl} 
-                placeholder="Link to full screenshot (optional)" 
+                placeholder="Link to rating screenshot (proof)" 
+                required
                 id="submit-screenshot" 
               />
               {screenshotUrl && (
@@ -240,7 +241,7 @@ export default function SubmitRatingPage() {
 
             <div className="flex gap-3 justify-end mt-4 pt-4 border-t border-white/[0.04]">
               <Button type="button" variant="ghost" onClick={() => router.push('/')}>Cancel</Button>
-              <Button type="submit" disabled={submitting || memberIds.length === 0 || !teamId || !orderId}>
+              <Button type="submit" disabled={submitting || memberIds.length === 0 || !teamId || !orderId || !screenshotUrl}>
                 {submitting ? 'Submitting...' : 'Submit Rating'}
               </Button>
             </div>

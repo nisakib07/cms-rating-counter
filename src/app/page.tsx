@@ -140,18 +140,18 @@ export default function PublicDashboard() {
             {/* Leaderboard */}
             <LeaderboardCard topMember={topMembers[0]} topTeam={topTeams[0]} />
 
-            {/* Charts Row */}
+            {/* Team Performance — Full Width */}
+            <TeamChart teams={topTeams} />
+
+            {/* Service Lines + Trend */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 h-full">
-                <div className="h-full"><TeamChart teams={topTeams} /></div>
-              </div>
               <div className="lg:col-span-1 h-full">
                 <div className="h-full"><ServiceLineChart cmsHubRatings={cmsHubRatings} cmsEndgameRatings={cmsEndgameRatings} /></div>
               </div>
+              <div className="lg:col-span-2 h-full">
+                <MonthlyTrendChart ratings={allRatings} />
+              </div>
             </div>
-
-            {/* Trend Chart */}
-            <MonthlyTrendChart ratings={allRatings} />
 
             {/* Recent Ratings */}
             <RecentRatings ratings={recentRatings} />
