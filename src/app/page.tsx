@@ -18,7 +18,7 @@ export default function PublicDashboard() {
   const { totalRatings, cmsHubRatings, cmsEndgameRatings, topTeams, topMembers, recentRatings, allRatings, loading } = useDashboardStats();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Calculate this month vs last month
+  // Calculate month-over-month change
   const now = new Date();
   const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -141,7 +141,7 @@ export default function PublicDashboard() {
         ) : (
           <div className="flex flex-col gap-8">
             {/* Stats Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               <StatsCard
                 icon={<Star size={24} className="text-white" fill="white" />}
                 label="Total Ratings"
@@ -166,13 +166,6 @@ export default function PublicDashboard() {
                 color="from-cms-endgame to-blue-400"
                 glowClass="glow-endgame"
                 delay={300}
-              />
-              <StatsCard
-                icon={<Star size={24} className="text-white" />}
-                label="This Month"
-                value={thisMonthCount}
-                color="from-secondary to-purple-400"
-                delay={450}
               />
             </div>
 
