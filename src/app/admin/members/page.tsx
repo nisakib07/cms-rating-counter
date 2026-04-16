@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Search, Shield, ShieldCheck, Download } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Pencil, Trash2, Search, Shield, ShieldCheck, Download, ExternalLink } from 'lucide-react';
 import { useMembers } from '@/hooks/useMembers';
 import { useTeams } from '@/hooks/useTeams';
 import { useAuth } from '@/contexts/AuthContext';
@@ -150,13 +151,14 @@ export default function MembersPage() {
                 <tr key={m.id} className="border-b border-border/50 hover:bg-glass transition-colors">
                   <td className="px-5 py-4 text-sm font-mono text-text-muted">{m.member_id || '—'}</td>
                   <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
+                    <Link href={`/members/${m.id}`} target="_blank" className="flex items-center gap-3 group">
                       {m.profile_image ? (
                         <img src={toDriveDirectUrl(m.profile_image)} alt={m.name} className="w-8 h-8 rounded-full object-cover bg-surface" onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling && ((e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex'); }} />
                       ) : null}
                       <div className={`w-8 h-8 rounded-full bg-primary/20 items-center justify-center text-primary-light font-semibold text-xs ${m.profile_image ? 'hidden' : 'flex'}`}>{m.name.charAt(0)}</div>
-                      <span className="text-sm font-medium text-text-primary">{m.name}</span>
-                    </div>
+                      <span className="text-sm font-medium text-text-primary group-hover:text-primary group-hover:underline transition-colors">{m.name}</span>
+                      <ExternalLink size={12} className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </Link>
                   </td>
                   <td className="px-5 py-4 text-sm text-text-muted">{m.email || '—'}</td>
                   <td className="px-5 py-4"><Badge variant="neutral">{m.role}</Badge></td>
