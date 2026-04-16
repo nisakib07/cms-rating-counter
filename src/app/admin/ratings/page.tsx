@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Search, Star, Image, ExternalLink, Calendar, Download } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Star, Image, ExternalLink, Calendar, Download, Check, Users } from 'lucide-react';
 import { useRatings } from '@/hooks/useRatings';
 import { useTeams } from '@/hooks/useTeams';
 import { useMembers } from '@/hooks/useMembers';
@@ -72,6 +72,7 @@ export default function RatingsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.screenshot_url) return showToast("Screenshot URL is required", "error");
     if (!editing) {
       if (multiMemberIds.length === 0) return showToast("Select at least one member", "error");
       setSaving(true);
@@ -225,44 +226,76 @@ export default function RatingsPage() {
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Rating' : 'Add Rating'} size="md">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Select label="Team" value={form.team_id} onChange={handleTeamChange} options={teamOptions} placeholder="Select team" required id="rating-team" />
-            {editing ? (
-              <Select label="Member" value={form.member_id} onChange={v => setForm({ ...form, member_id: v })} options={memberOptions} placeholder={form.team_id ? 'Select member' : 'Select a team first'} required id="rating-member" />
-            ) : (
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-text-secondary">Members <span className="text-text-muted font-normal">(Select all that apply)</span></label>
-                {!form.team_id ? (
-                  <div className="text-sm text-text-muted mt-2">Select a team first.</div>
-                ) : members.filter(m => m.team_id === form.team_id).length === 0 ? (
-                  <div className="text-sm text-text-muted mt-2">No members found in this team.</div>
-                ) : (
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {members.filter(m => m.team_id === form.team_id).map(m => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => {
-                          if (multiMemberIds.includes(m.id)) {
-                            setMultiMemberIds(multiMemberIds.filter(id => id !== m.id));
-                          } else {
-                            setMultiMemberIds([...multiMemberIds, m.id]);
-                          }
-                        }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                          multiMemberIds.includes(m.id) 
-                            ? 'bg-primary text-white shadow-lg shadow-primary/20 border-primary' 
-                            : 'bg-surface border-border text-text-muted hover:text-text-primary hover:bg-white/[0.04]'
-                        } border`}
-                      >
-                        {m.name}
-                      </button>
-                    ))}
-                  </div>
+          <Select label="Team" value={form.team_id} onChange={handleTeamChange} options={teamOptions} placeholder="Select team" required id="rating-team" />
+
+          {/* Member Selection */}
+          {editing ? (
+            <Select label="Member" value={form.member_id} onChange={v => setForm({ ...form, member_id: v })} options={memberOptions} placeholder={form.team_id ? 'Select member' : 'Select a team first'} required id="rating-member" />
+          ) : (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-text-secondary flex items-center gap-2">
+                  <Users size={14} className="text-primary" />
+                  Members<span className="text-red-400 ml-0.5">*</span>
+                </label>
+                {multiMemberIds.length > 0 && (
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20">
+                    {multiMemberIds.length} selected
+                  </span>
                 )}
               </div>
-            )}
-          </div>
+              {!form.team_id ? (
+                <div className="flex items-center justify-center py-6 rounded-xl border border-dashed border-border bg-surface/50">
+                  <span className="text-sm text-text-muted">Select a team first to view members</span>
+                </div>
+              ) : members.filter(m => m.team_id === form.team_id).length === 0 ? (
+                <div className="flex items-center justify-center py-6 rounded-xl border border-dashed border-border bg-surface/50">
+                  <span className="text-sm text-text-muted">No members found in this team</span>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-border bg-surface/30 p-2 max-h-[220px] overflow-y-auto">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {members.filter(m => m.team_id === form.team_id).map(m => {
+                      const isSelected = multiMemberIds.includes(m.id);
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setMultiMemberIds(multiMemberIds.filter(id => id !== m.id));
+                            } else {
+                              setMultiMemberIds([...multiMemberIds, m.id]);
+                            }
+                          }}
+                          className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all border cursor-pointer ${
+                            isSelected
+                              ? 'bg-primary/15 text-primary border-primary/30 shadow-sm shadow-primary/10 ring-1 ring-primary/20'
+                              : 'bg-white/[0.02] border-white/[0.06] text-text-muted hover:text-text-primary hover:bg-white/[0.06] hover:border-white/[0.12]'
+                          }`}
+                        >
+                          <span className={`flex-shrink-0 w-5 h-5 rounded flex items-center justify-center transition-all ${
+                            isSelected ? 'bg-primary text-white' : 'border border-white/[0.15] bg-white/[0.03]'
+                          }`}>
+                            {isSelected && <Check size={12} strokeWidth={3} />}
+                          </span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold uppercase overflow-hidden">
+                              {m.profile_image ? (
+                                <img src={toDriveDirectUrl(m.profile_image)} alt={m.name} className="w-full h-full object-cover" onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.textContent = m.name.charAt(0); }} />
+                              ) : m.name.charAt(0)}
+                            </div>
+                            <span className="text-left leading-tight">{m.name}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Select label="Rating" value={String(form.rating_value)} onChange={v => setForm({ ...form, rating_value: Number(v) })} options={[{value:'5',label:'⭐⭐⭐⭐⭐ (5)'},{value:'4',label:'⭐⭐⭐⭐ (4)'},{value:'3',label:'⭐⭐⭐ (3)'},{value:'2',label:'⭐⭐ (2)'},{value:'1',label:'⭐ (1)'}]} id="rating-value" />
             <Input label="Order ID" value={form.order_id} onChange={v => setForm({ ...form, order_id: v })} placeholder="FO-XXXXX" id="rating-order" />
@@ -270,10 +303,10 @@ export default function RatingsPage() {
           </div>
           <Input label="Client Name" value={form.client_name} onChange={v => setForm({ ...form, client_name: v })} placeholder="Client name" id="rating-client" />
           <Textarea label="Review Text" value={form.review_text} onChange={v => setForm({ ...form, review_text: v })} placeholder="Optional review text..." id="rating-review" />
-          <Input label="Screenshot URL (optional)" value={form.screenshot_url} onChange={v => setForm({ ...form, screenshot_url: v })} placeholder="https://i.imgur.com/... or any image link" id="rating-screenshot" />
+          <Input label="Screenshot URL" value={form.screenshot_url} onChange={v => setForm({ ...form, screenshot_url: v })} placeholder="https://i.imgur.com/... or any image link" required id="rating-screenshot" />
           <div className="flex gap-3 justify-end mt-2">
             <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={saving || (!editing && multiMemberIds.length === 0)}>{saving ? 'Saving...' : editing ? 'Update' : 'Add'}</Button>
+            <Button type="submit" disabled={saving || !form.screenshot_url.trim() || (!editing && multiMemberIds.length === 0)}>{saving ? 'Saving...' : editing ? 'Update' : 'Add'}</Button>
           </div>
         </form>
       </Modal>

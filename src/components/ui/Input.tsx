@@ -14,7 +14,7 @@ interface InputProps {
 export function Input({ label, type = 'text', value, onChange, placeholder, required, id, className = '' }: InputProps) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      {label && <label className="text-sm font-medium text-text-secondary">{label}</label>}
+      {label && <label className="text-sm font-medium text-text-secondary">{label}{required && <span className="text-red-400 ml-0.5">*</span>}</label>}
       <input
         id={id}
         type={type}
@@ -43,7 +43,7 @@ interface SelectProps {
 export function Select({ label, value, onChange, options, placeholder, required, disabled, id, className = '' }: SelectProps) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      {label && <label className="text-sm font-medium text-text-secondary">{label}</label>}
+      {label && <label className="text-sm font-medium text-text-secondary">{label}{required && <span className="text-red-400 ml-0.5">*</span>}</label>}
       <select
         id={id}
         value={value}
