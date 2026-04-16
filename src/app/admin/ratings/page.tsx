@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Search, Star, Image, ExternalLink, Calendar, Download, Check, Users } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Star, Image, ExternalLink, Calendar, Download, Check, Users, Info, Clock, User, FileEdit, CheckCircle, XCircle } from 'lucide-react';
 import { useRatings } from '@/hooks/useRatings';
 import { useTeams } from '@/hooks/useTeams';
 import { useMembers } from '@/hooks/useMembers';
@@ -13,14 +13,33 @@ import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Badge from '@/components/ui/Badge';
 import Pagination from '@/components/ui/Pagination';
-import type { Rating, RatingFormData } from '@/types/database';
+import type { Rating, RatingFormData, RatingAuditLog } from '@/types/database';
 import { toDriveDirectUrl, exportToCSV, isActualTeam } from '@/lib/utils';
 
 const defaultForm: RatingFormData = { member_id: '', team_id: '', rating_value: 5, order_id: '', client_name: '', review_text: '', screenshot_url: '', date_received: new Date().toISOString().split('T')[0] };
 
+const FIELD_LABELS: Record<string, string> = {
+  member_id: 'Member',
+  team_id: 'Team',
+  rating_value: 'Rating',
+  order_id: 'Order ID',
+  client_name: 'Client Name',
+  review_text: 'Review Text',
+  screenshot_url: 'Screenshot URL',
+  date_received: 'Date Received',
+};
+
+const ACTION_CONFIG: Record<string, { icon: typeof CheckCircle; color: string; label: string }> = {
+  created: { icon: Plus, color: 'text-emerald-400', label: 'Created' },
+  edited: { icon: FileEdit, color: 'text-blue-400', label: 'Edited' },
+  approved: { icon: CheckCircle, color: 'text-emerald-400', label: 'Approved' },
+  rejected: { icon: XCircle, color: 'text-red-400', label: 'Rejected' },
+  status_changed: { icon: Clock, color: 'text-yellow-400', label: 'Status Changed' },
+};
+
 export default function RatingsPage() {
-  const { isSuperAdmin, memberServiceLine } = useAuth();
-  const { ratings, loading, createRating, updateRating, deleteRating } = useRatings();
+  const { user, isSuperAdmin, memberServiceLine } = useAuth();
+  const { ratings, loading, createRating, updateRating, deleteRating, fetchAuditLog } = useRatings();
   const { teams } = useTeams();
   const { members } = useMembers();
   const { showToast } = useToast();
@@ -35,6 +54,9 @@ export default function RatingsPage() {
   const [multiMemberIds, setMultiMemberIds] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [infoRating, setInfoRating] = useState<Rating | null>(null);
+  const [auditLogs, setAuditLogs] = useState<RatingAuditLog[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -78,7 +100,7 @@ export default function RatingsPage() {
       setSaving(true);
       let hasError = false;
       for (const mId of multiMemberIds) {
-        const { error } = await createRating({ ...form, member_id: mId });
+        const { error } = await createRating({ ...form, member_id: mId }, user?.email || 'unknown');
         if (error) { 
           if (error.includes('unique') || error.includes('23505')) {
             showToast('A rating mapping for one of these members already exists on this Order ID.', 'error');
@@ -93,7 +115,7 @@ export default function RatingsPage() {
       if (!hasError) { showToast('Ratings added', 'success'); setModalOpen(false); }
     } else {
       setSaving(true);
-      const { error } = await updateRating(editing.id, form);
+      const { error } = await updateRating(editing.id, form, user?.email || 'unknown', editing);
       setSaving(false);
       if (error) {
         if (error.includes('unique') || error.includes('23505')) showToast('Duplicate entry for this order ID.', 'error');
@@ -187,10 +209,9 @@ export default function RatingsPage() {
                   </td>
                   <td className="px-5 py-4"><Badge variant={r.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} customColor={r.team?.color}>{r.team?.name || '—'}</Badge></td>
                   <td className="px-5 py-4">
-                    <div className="flex items-center gap-0.5">
-                      {Array.from({ length: r.rating_value }).map((_, j) => (
-                        <Star key={j} size={12} className="text-warning" fill="#f59e0b" />
-                      ))}
+                    <div className="flex items-center gap-1">
+                      <Star size={12} className="text-warning" fill="#f59e0b" />
+                      <span className="text-xs font-semibold text-warning">{r.rating_value}</span>
                     </div>
                   </td>
                   <td className="px-5 py-4 text-sm text-text-muted">{r.client_name || '—'}</td>
@@ -207,6 +228,9 @@ export default function RatingsPage() {
                   <td className="px-5 py-4">
                     {(isSuperAdmin || memberServiceLine === r.team?.service_line) ? (
                       <div className="flex items-center justify-end gap-1">
+                        {isSuperAdmin && (
+                          <button onClick={async () => { setInfoRating(r); setAuditLoading(true); const logs = await fetchAuditLog(r.id); setAuditLogs(logs); setAuditLoading(false); }} className="p-2 rounded-lg hover:bg-primary/10 text-text-muted hover:text-primary transition-colors cursor-pointer" title="Rating Info"><Info size={15} /></button>
+                        )}
                         <button onClick={() => openEdit(r)} className="p-2 rounded-lg hover:bg-glass-light text-text-muted hover:text-text-primary transition-colors cursor-pointer"><Pencil size={15} /></button>
                         <button onClick={() => setDeleteId(r.id)} className="p-2 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer"><Trash2 size={15} /></button>
                       </div>
@@ -297,7 +321,7 @@ export default function RatingsPage() {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Select label="Rating" value={String(form.rating_value)} onChange={v => setForm({ ...form, rating_value: Number(v) })} options={[{value:'5',label:'⭐⭐⭐⭐⭐ (5)'},{value:'4',label:'⭐⭐⭐⭐ (4)'},{value:'3',label:'⭐⭐⭐ (3)'},{value:'2',label:'⭐⭐ (2)'},{value:'1',label:'⭐ (1)'}]} id="rating-value" />
+            <Input label="Rating" type="number" value={String(form.rating_value)} onChange={v => setForm({ ...form, rating_value: Number(v) })} placeholder="e.g. 5, 4.7" required id="rating-value" />
             <Input label="Order ID" value={form.order_id} onChange={v => setForm({ ...form, order_id: v })} placeholder="FO-XXXXX" id="rating-order" />
             <Input label="Date Received" type="date" value={form.date_received} onChange={v => setForm({ ...form, date_received: v })} id="rating-date" />
           </div>
@@ -312,6 +336,111 @@ export default function RatingsPage() {
       </Modal>
 
       <ConfirmDialog isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={handleDelete} title="Delete Rating" message="This rating will be permanently removed. This action cannot be undone." loading={saving} />
+
+      {/* Rating Info Modal (Super Admin Only) */}
+      <Modal isOpen={!!infoRating} onClose={() => { setInfoRating(null); setAuditLogs([]); }} title="Rating Details" size="md">
+        {infoRating && (
+          <div className="flex flex-col gap-5">
+            {/* Basic Info */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3">
+                <div className="text-[10px] uppercase tracking-wider text-text-muted mb-1">Member</div>
+                <div className="text-sm font-medium text-text-primary">{infoRating.member?.name || '—'}</div>
+              </div>
+              <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3">
+                <div className="text-[10px] uppercase tracking-wider text-text-muted mb-1">Team</div>
+                <div className="text-sm font-medium text-text-primary">{infoRating.team?.name || '—'}</div>
+              </div>
+              <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3">
+                <div className="text-[10px] uppercase tracking-wider text-text-muted mb-1">Status</div>
+                <Badge variant={infoRating.status === 'approved' ? 'success' : infoRating.status === 'rejected' ? 'danger' : 'warning'}>{infoRating.status}</Badge>
+              </div>
+              <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3">
+                <div className="text-[10px] uppercase tracking-wider text-text-muted mb-1">Created</div>
+                <div className="text-sm text-text-secondary">{new Date(infoRating.created_at).toLocaleString()}</div>
+              </div>
+            </div>
+
+            {/* Approval Info */}
+            {infoRating.approved_by && (
+              <div className="bg-emerald-500/[0.06] border border-emerald-500/20 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle size={14} className="text-emerald-400" />
+                  <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                    {infoRating.status === 'rejected' ? 'Rejected' : 'Approved'} By
+                  </span>
+                </div>
+                <div className="text-sm font-medium text-text-primary">{infoRating.approved_by}</div>
+                {infoRating.approved_at && (
+                  <div className="text-xs text-text-muted mt-1">{new Date(infoRating.approved_at).toLocaleString()}</div>
+                )}
+              </div>
+            )}
+
+            {/* Audit Log Timeline */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Clock size={14} className="text-primary-light" />
+                <span className="text-sm font-semibold text-text-primary">Activity Log</span>
+                <span className="text-xs text-text-muted">({auditLogs.length} entries)</span>
+              </div>
+              {auditLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : auditLogs.length === 0 ? (
+                <div className="text-center py-6 text-sm text-text-muted bg-white/[0.02] rounded-xl border border-dashed border-white/[0.06]">
+                  No activity recorded yet
+                </div>
+              ) : (
+                <div className="relative pl-6 flex flex-col gap-0 max-h-[300px] overflow-y-auto pr-1">
+                  {/* Timeline line */}
+                  <div className="absolute left-[9px] top-2 bottom-2 w-px bg-white/[0.08]" />
+                  {auditLogs.map((log, i) => {
+                    const config = ACTION_CONFIG[log.action] || ACTION_CONFIG.status_changed;
+                    const Icon = config.icon;
+                    return (
+                      <div key={log.id} className={`relative pb-4 ${i === auditLogs.length - 1 ? 'pb-0' : ''}`}>
+                        {/* Timeline dot */}
+                        <div className={`absolute -left-6 top-0.5 w-[18px] h-[18px] rounded-full border-2 border-surface bg-surface flex items-center justify-center`}>
+                          <Icon size={10} className={config.color} />
+                        </div>
+                        <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-xs font-semibold ${config.color}`}>{config.label}</span>
+                            <span className="text-[10px] text-text-muted">{new Date(log.created_at).toLocaleString()}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs text-text-muted">
+                            <User size={10} />
+                            <span>{log.changed_by}</span>
+                          </div>
+                          {/* Show changed fields for edits */}
+                          {log.changes && Object.keys(log.changes).length > 0 && (
+                            <div className="mt-2 flex flex-col gap-1.5">
+                              {Object.entries(log.changes).map(([field, vals]) => (
+                                <div key={field} className="text-xs bg-white/[0.02] rounded-md px-2.5 py-1.5 border border-white/[0.04]">
+                                  <span className="font-medium text-text-secondary">{FIELD_LABELS[field] || field}:</span>
+                                  <span className="text-red-400/70 line-through ml-2">{String(vals.old || '(empty)')}</span>
+                                  <span className="text-text-muted mx-1.5">→</span>
+                                  <span className="text-emerald-400">{String(vals.new || '(empty)')}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end">
+              <Button variant="ghost" onClick={() => { setInfoRating(null); setAuditLogs([]); }}>Close</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

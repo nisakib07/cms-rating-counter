@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Star, ArrowLeft, Trophy, ArrowUpDown, Users, Calendar, Download } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { toDriveDirectUrl, countUniqueOrderIds, exportToCSV, isActualTeam } from '@/lib/utils';
+import { toDriveDirectUrl, countFiveStarOrders, exportToCSV, isActualTeam } from '@/lib/utils';
 import Badge from '@/components/ui/Badge';
 import AnimatedCounter from '@/components/ui/AnimatedCounter';
 import { Select } from '@/components/ui/Input';
@@ -49,7 +49,7 @@ export default function LeaderboardPage() {
 
     let list = members.map(m => ({
       ...m,
-      rating_count: countUniqueOrderIds(filteredRatings.filter(r => r.member_id === m.id)),
+      rating_count: countFiveStarOrders(filteredRatings.filter(r => r.member_id === m.id)),
     }));
 
     // Filter by member's team/service line
@@ -148,7 +148,7 @@ export default function LeaderboardPage() {
               onClick={() => toggleSort('rating_count')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${sortKey === 'rating_count' ? 'bg-primary/15 text-primary-light border border-primary/20' : 'text-text-muted hover:text-text-primary hover:bg-glass-light'}`}
             >
-              Ratings {sortKey === 'rating_count' && (sortAsc ? '↑' : '↓')}
+              5★ Ratings {sortKey === 'rating_count' && (sortAsc ? '↑' : '↓')}
             </button>
             <button
               onClick={() => toggleSort('name')}
@@ -190,7 +190,7 @@ export default function LeaderboardPage() {
                 </div>
                 <div className="text-right shrink-0">
                   <AnimatedCounter value={m.rating_count} className="text-2xl sm:text-3xl font-extrabold text-primary-light tabular-nums" />
-                  <div className="text-[10px] text-text-muted uppercase tracking-wider">ratings</div>
+                  <div className="text-[10px] text-text-muted uppercase tracking-wider">5★</div>
                 </div>
               </Link>
             ))}

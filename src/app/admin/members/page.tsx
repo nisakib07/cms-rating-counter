@@ -151,7 +151,7 @@ export default function MembersPage() {
                 <tr key={m.id} className="border-b border-border/50 hover:bg-glass transition-colors">
                   <td className="px-5 py-4 text-sm font-mono text-text-muted">{m.member_id || '—'}</td>
                   <td className="px-5 py-4">
-                    <Link href={`/members/${m.id}`} target="_blank" className="flex items-center gap-3 group">
+                    <Link href={`/members/${m.id}`} className="flex items-center gap-3 group">
                       {m.profile_image ? (
                         <img src={toDriveDirectUrl(m.profile_image)} alt={m.name} className="w-8 h-8 rounded-full object-cover bg-surface" onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling && ((e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex'); }} />
                       ) : null}

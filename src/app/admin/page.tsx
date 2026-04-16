@@ -44,7 +44,7 @@ export default function AdminDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        <StatsCard icon={<Star size={22} className="text-white" />} label="Total Ratings" value={totalRatings} color="from-primary to-secondary" />
+        <StatsCard icon={<Star size={22} className="text-white" />} label="Total Five Stars" value={totalRatings} color="from-primary to-secondary" />
         <StatsCard icon={<TrendingUp size={22} className="text-white" />} label="CMS Hub" value={cmsHubRatings} color="from-cms-hub to-emerald-400" delay={100} />
         <StatsCard icon={<Zap size={22} className="text-white" />} label="CMS Endgame" value={cmsEndgameRatings} color="from-cms-endgame to-blue-400" delay={200} />
         <StatsCard icon={<Users size={22} className="text-white" />} label="Total Members" value={totalMembers} color="from-warning to-orange-400" delay={300} />
@@ -114,7 +114,7 @@ export default function AdminDashboard() {
               </div>
               <p className="text-sm text-text-secondary flex-1">
                 <span className="font-semibold text-text-primary">{r.member?.name || 'Someone'}</span> received{' '}
-                <span className="text-warning font-semibold">{'⭐'.repeat(r.rating_value)}</span> from{' '}
+                <span className="text-warning font-semibold">⭐ {r.rating_value}</span> from{' '}
                 <span className="text-text-primary">{r.client_name || 'a client'}</span>
               </p>
               <span className="text-[10px] text-text-muted shrink-0">{new Date(r.date_received).toLocaleDateString()}</span>

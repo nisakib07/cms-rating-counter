@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { Rating, RatingFormData } from '@/types/database';
+import type { Rating, RatingFormData, RatingAuditLog } from '@/types/database';
 
 export function useRatings() {
   const [ratings, setRatings] = useState<Rating[]>([]);
@@ -24,31 +24,67 @@ export function useRatings() {
 
   useEffect(() => { fetchRatings(); }, [fetchRatings]);
 
-  const createRating = async (formData: RatingFormData) => {
+  // Helper to insert an audit log entry
+  const insertAuditLog = async (ratingId: string, action: string, changedBy: string, changes?: Record<string, { old: unknown; new: unknown }>) => {
+    await supabase.from('rating_audit_log').insert({
+      rating_id: ratingId,
+      action,
+      changed_by: changedBy,
+      changes: changes || null,
+    });
+  };
+
+  const createRating = async (formData: RatingFormData, userEmail?: string) => {
     const payload: Record<string, unknown> = { ...formData };
     if (!payload.order_id) delete payload.order_id;
     if (!payload.client_name) delete payload.client_name;
     if (!payload.review_text) delete payload.review_text;
     if (!payload.screenshot_url) delete payload.screenshot_url;
     if (!payload.status) payload.status = 'approved';
-    const { error } = await supabase.from('ratings').insert(payload);
+    const { data, error } = await supabase.from('ratings').insert(payload).select('id').single();
+    if (!error && data && userEmail) {
+      await insertAuditLog(data.id, 'created', userEmail);
+    }
     if (!error) await fetchRatings();
     return { error: error?.message ?? null };
   };
 
-  const updateRating = async (id: string, formData: RatingFormData) => {
+  const updateRating = async (id: string, formData: RatingFormData, userEmail?: string, oldRating?: Rating) => {
     const payload: Record<string, unknown> = { ...formData };
     if (!payload.order_id) payload.order_id = null;
     if (!payload.client_name) payload.client_name = null;
     if (!payload.review_text) payload.review_text = null;
     if (!payload.screenshot_url) payload.screenshot_url = null;
     const { error } = await supabase.from('ratings').update(payload).eq('id', id);
+    if (!error && userEmail && oldRating) {
+      // Compute diff of changed fields
+      const changes: Record<string, { old: unknown; new: unknown }> = {};
+      const fields: (keyof RatingFormData)[] = ['member_id', 'team_id', 'rating_value', 'order_id', 'client_name', 'review_text', 'screenshot_url', 'date_received'];
+      for (const field of fields) {
+        const oldVal = oldRating[field] ?? '';
+        const newVal = formData[field] ?? '';
+        if (String(oldVal) !== String(newVal)) {
+          changes[field] = { old: oldVal, new: newVal };
+        }
+      }
+      if (Object.keys(changes).length > 0) {
+        await insertAuditLog(id, 'edited', userEmail, changes);
+      }
+    }
     if (!error) await fetchRatings();
     return { error: error?.message ?? null };
   };
 
-  const updateRatingStatus = async (id: string, status: 'approved' | 'rejected') => {
-    const { error } = await supabase.from('ratings').update({ status }).eq('id', id);
+  const updateRatingStatus = async (id: string, status: 'approved' | 'rejected', userEmail?: string) => {
+    const updatePayload: Record<string, unknown> = { status };
+    if (userEmail) {
+      updatePayload.approved_by = userEmail;
+      updatePayload.approved_at = new Date().toISOString();
+    }
+    const { error } = await supabase.from('ratings').update(updatePayload).eq('id', id);
+    if (!error && userEmail) {
+      await insertAuditLog(id, status === 'approved' ? 'approved' : 'rejected', userEmail);
+    }
     if (!error) await fetchRatings();
     return { error: error?.message ?? null };
   };
@@ -59,5 +95,16 @@ export function useRatings() {
     return { error: error?.message ?? null };
   };
 
-  return { ratings, pendingRatings, loading, fetchRatings, createRating, updateRating, updateRatingStatus, deleteRating };
+  // Fetch audit log for a specific rating
+  const fetchAuditLog = async (ratingId: string): Promise<RatingAuditLog[]> => {
+    const { data, error } = await supabase
+      .from('rating_audit_log')
+      .select('*')
+      .eq('rating_id', ratingId)
+      .order('created_at', { ascending: false });
+    if (error || !data) return [];
+    return data as RatingAuditLog[];
+  };
+
+  return { ratings, pendingRatings, loading, fetchRatings, createRating, updateRating, updateRatingStatus, deleteRating, fetchAuditLog };
 }

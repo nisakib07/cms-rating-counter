@@ -47,10 +47,9 @@ function RatingCard({ rating, index, onOpenLightbox }: { rating: Rating; index: 
         </div>
 
         {/* Stars - bottom left over gradient */}
-        <div className="absolute bottom-3 left-3 flex items-center gap-0.5">
-          {Array.from({ length: rating.rating_value }).map((_, j) => (
-            <Star key={j} size={14} className="text-warning drop-shadow-lg" fill="#f59e0b" />
-          ))}
+        <div className="absolute bottom-3 left-3 flex items-center gap-1">
+          <Star size={14} className="text-warning drop-shadow-lg" fill="#f59e0b" />
+          <span className="text-xs font-bold text-warning drop-shadow-lg">{rating.rating_value}</span>
         </div>
 
         {/* External link on hover - bottom right */}

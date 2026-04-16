@@ -121,9 +121,8 @@ export default function ScreenshotLightbox({ ratings, initialIndex, onClose }: S
         >
           {/* Rating stars */}
           <div className="flex items-center gap-1.5">
-            {Array.from({ length: rating.rating_value }).map((_, j) => (
-              <Star key={j} size={20} className="text-warning" fill="#f59e0b" />
-            ))}
+            <Star size={20} className="text-warning" fill="#f59e0b" />
+            <span className="text-white font-semibold text-lg">{rating.rating_value}</span>
             <span className="text-white/40 text-sm ml-2">{rating.rating_value}-star rating</span>
           </div>
 

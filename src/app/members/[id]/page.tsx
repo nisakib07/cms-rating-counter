@@ -1,17 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Star, ArrowLeft, Users, Calendar, TrendingUp } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/lib/supabase';
-import { toDriveDirectUrl, countUniqueOrderIds } from '@/lib/utils';
+import { toDriveDirectUrl, countFiveStarOrders } from '@/lib/utils';
 import Badge from '@/components/ui/Badge';
 import type { Member, Rating } from '@/types/database';
 
 export default function MemberProfilePage() {
   const params = useParams();
+  const router = useRouter();
   const [member, setMember] = useState<Member | null>(null);
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,9 +94,9 @@ export default function MemberProfilePage() {
               </div>
               <span className="font-bold text-lg text-text-primary tracking-tight">StarLedger</span>
             </Link>
-            <Link href="/" className="flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors">
-              <ArrowLeft size={14} /> Dashboard
-            </Link>
+            <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors cursor-pointer">
+              <ArrowLeft size={14} /> Back
+            </button>
           </div>
         </div>
       </header>
@@ -121,8 +122,8 @@ export default function MemberProfilePage() {
             </div>
             <div className="flex gap-6 text-center shrink-0">
               <div>
-                <div className="text-3xl font-extrabold text-primary-light">{countUniqueOrderIds(ratings)}</div>
-                <div className="text-xs text-text-muted uppercase tracking-wider">Ratings</div>
+                <div className="text-3xl font-extrabold text-primary-light">{countFiveStarOrders(ratings)}</div>
+                <div className="text-xs text-text-muted uppercase tracking-wider">Five Stars</div>
               </div>
               <div>
                 <div className="text-3xl font-extrabold text-warning">{avgRating}</div>
@@ -164,16 +165,15 @@ export default function MemberProfilePage() {
             <div className="w-9 h-9 rounded-xl bg-warning/15 flex items-center justify-center">
               <Star size={18} className="text-warning" />
             </div>
-            All Ratings ({countUniqueOrderIds(ratings)})
+            All Ratings ({countFiveStarOrders(ratings)} five stars)
           </h3>
           {ratings.length > 0 ? (
             <div className="flex flex-col gap-3">
               {ratings.map(r => (
                 <div key={r.id} className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-all">
                   <div className="flex items-center gap-0.5">
-                    {Array.from({ length: r.rating_value }).map((_, j) => (
-                      <Star key={j} size={14} className="text-warning" fill="#f59e0b" />
-                    ))}
+                      <Star size={14} className="text-warning" fill="#f59e0b" />
+                      <span className="text-xs text-warning font-semibold ml-1">{r.rating_value}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-text-primary">{r.client_name || 'No client name'}</div>

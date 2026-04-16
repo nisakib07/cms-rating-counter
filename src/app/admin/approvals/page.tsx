@@ -50,7 +50,7 @@ export default function ApprovalsPage() {
     if (!actionId || !actionType) return;
     setSaving(true);
     
-    const { error } = await updateRatingStatus(actionId, actionType);
+    const { error } = await updateRatingStatus(actionId, actionType, user?.email || 'unknown');
     
     setSaving(false);
     if (error) {

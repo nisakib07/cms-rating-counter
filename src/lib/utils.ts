@@ -24,6 +24,14 @@ export function countUniqueOrderIds(ratings: { order_id: string | null }[]): num
   return new Set(validOrders).size;
 }
 
+// Count unique order IDs for 5-star ratings only (strict 5.0).
+// This is the core metric — the total number of perfect 5-star reviews.
+export function countFiveStarOrders(ratings: { order_id: string | null; rating_value: number }[]): number {
+  const fiveStarRatings = ratings.filter(r => r.rating_value === 5);
+  const validOrders = fiveStarRatings.filter(r => r.order_id).map(r => r.order_id as string);
+  return new Set(validOrders).size;
+}
+
 // Export data array to CSV and trigger download
 export function exportToCSV(data: Record<string, string | number | null | undefined>[], filename: string) {
   if (data.length === 0) return;

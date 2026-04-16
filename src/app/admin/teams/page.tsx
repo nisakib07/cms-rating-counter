@@ -14,7 +14,7 @@ import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Badge from '@/components/ui/Badge';
 import type { Team, TeamFormData, ServiceLine } from '@/types/database';
-import { exportToCSV, isActualTeam, countUniqueOrderIds } from '@/lib/utils';
+import { exportToCSV, isActualTeam, countFiveStarOrders } from '@/lib/utils';
 
 const defaultForm: TeamFormData = { name: '', service_line: 'CMS Hub', color: '#10b981' };
 
@@ -84,7 +84,7 @@ export default function TeamsPage() {
           <button
             onClick={() => exportToCSV(filtered.map(t => {
               const mc = members.filter(m => m.team_id === t.id).length;
-              const rc = countUniqueOrderIds(ratings.filter(r => r.team_id === t.id));
+              const rc = countFiveStarOrders(ratings.filter(r => r.team_id === t.id));
               return { Name: t.name, Service_Line: t.service_line, Members: mc, Ratings: rc, Created: new Date(t.created_at).toLocaleDateString() };
             }), 'teams')}
             className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium bg-white/[0.04] text-text-secondary border border-white/[0.06] hover:bg-white/[0.08] transition-all cursor-pointer"
@@ -125,13 +125,13 @@ export default function TeamsPage() {
               ) : filtered.map(team => {
                 const teamMembers = members.filter(m => m.team_id === team.id);
                 const teamRatings = ratings.filter(r => r.team_id === team.id);
-                const uniqueTeamRatingCount = countUniqueOrderIds(teamRatings);
-                const memberRatings = teamMembers.map(m => ({ ...m, count: countUniqueOrderIds(teamRatings.filter(r => r.member_id === m.id)) }));
+                const uniqueTeamRatingCount = countFiveStarOrders(teamRatings);
+                const memberRatings = teamMembers.map(m => ({ ...m, count: countFiveStarOrders(teamRatings.filter(r => r.member_id === m.id)) }));
                 const topPerformer = memberRatings.sort((a, b) => b.count - a.count)[0];
                 return (
                 <tr key={team.id} className="border-b border-border/50 hover:bg-glass transition-colors">
                   <td className="px-5 py-4 text-sm font-medium text-text-primary">
-                    <Link href={`/teams/${team.id}`} target="_blank" className="flex items-center gap-2 group">
+                    <Link href={`/teams/${team.id}`} className="flex items-center gap-2 group">
                        {team.color && <div className="w-3 h-3 rounded-full" style={{ backgroundColor: team.color }} />}
                        <span className="group-hover:text-primary group-hover:underline transition-colors">{team.name}</span>
                        <ExternalLink size={12} className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />

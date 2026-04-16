@@ -59,6 +59,8 @@ export interface Rating {
   screenshot_url: string | null;
   date_received: string;
   status: 'pending' | 'approved' | 'rejected';
+  approved_by: string | null;
+  approved_at: string | null;
   created_at: string;
   updated_at: string;
   // Joined fields
@@ -112,4 +114,13 @@ export interface RatingFormData {
   screenshot_url: string;
   date_received: string;
   status?: 'pending' | 'approved' | 'rejected';
+}
+
+export interface RatingAuditLog {
+  id: string;
+  rating_id: string;
+  action: 'created' | 'edited' | 'approved' | 'rejected' | 'status_changed';
+  changed_by: string;
+  changes: Record<string, { old: unknown; new: unknown }> | null;
+  created_at: string;
 }

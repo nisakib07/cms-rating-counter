@@ -1,17 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Star, ArrowLeft, Users, Calendar, BarChart3 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { supabase } from '@/lib/supabase';
-import { toDriveDirectUrl, countUniqueOrderIds } from '@/lib/utils';
+import { toDriveDirectUrl, countFiveStarOrders } from '@/lib/utils';
 import Badge from '@/components/ui/Badge';
 import type { Team, Member, Rating } from '@/types/database';
 
 export default function TeamProfilePage() {
   const params = useParams();
+  const router = useRouter();
   const [team, setTeam] = useState<Team | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
@@ -67,7 +68,7 @@ export default function TeamProfilePage() {
   const memberChartData = members.map(m => ({
     name: m.name.length > 12 ? m.name.substring(0, 12) + '…' : m.name,
     fullName: m.name,
-    ratings: countUniqueOrderIds(ratings.filter(r => r.member_id === m.id)),
+    ratings: countFiveStarOrders(ratings.filter(r => r.member_id === m.id)),
   })).sort((a, b) => b.ratings - a.ratings);
 
   return (
@@ -88,9 +89,9 @@ export default function TeamProfilePage() {
               </div>
               <span className="font-bold text-lg text-text-primary tracking-tight">StarLedger</span>
             </Link>
-            <Link href="/" className="flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors">
-              <ArrowLeft size={14} /> Dashboard
-            </Link>
+            <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors cursor-pointer">
+              <ArrowLeft size={14} /> Back
+            </button>
           </div>
         </div>
       </header>
@@ -110,8 +111,8 @@ export default function TeamProfilePage() {
             </div>
             <div className="flex gap-6 text-center shrink-0">
               <div>
-                <div className="text-3xl font-extrabold text-primary-light">{countUniqueOrderIds(ratings)}</div>
-                <div className="text-xs text-text-muted uppercase tracking-wider">Ratings</div>
+                <div className="text-3xl font-extrabold text-primary-light">{countFiveStarOrders(ratings)}</div>
+                <div className="text-xs text-text-muted uppercase tracking-wider">Five Stars</div>
               </div>
               <div>
                 <div className="text-3xl font-extrabold text-secondary">{members.length}</div>
@@ -131,7 +132,7 @@ export default function TeamProfilePage() {
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {members.map(m => {
-              const memberRatingCount = countUniqueOrderIds(ratings.filter(r => r.member_id === m.id));
+              const memberRatingCount = countFiveStarOrders(ratings.filter(r => r.member_id === m.id));
               return (
                 <Link
                   key={m.id}
@@ -149,7 +150,7 @@ export default function TeamProfilePage() {
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-bold text-primary-light">{memberRatingCount}</div>
-                    <div className="text-[10px] text-text-muted">ratings</div>
+                    <div className="text-[10px] text-text-muted">5★</div>
                   </div>
                 </Link>
               );
@@ -203,7 +204,7 @@ export default function TeamProfilePage() {
             <div className="w-9 h-9 rounded-xl bg-warning/15 flex items-center justify-center">
               <Star size={18} className="text-warning" />
             </div>
-            Team Ratings ({countUniqueOrderIds(ratings)})
+            Team Ratings ({countFiveStarOrders(ratings)} five stars)
           </h3>
           {ratings.length > 0 ? (
             <div className="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-2">
@@ -218,9 +219,8 @@ export default function TeamProfilePage() {
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-text-primary">{r.member?.name || 'Unknown'}</span>
                       <div className="flex items-center gap-0.5">
-                        {Array.from({ length: r.rating_value }).map((_, j) => (
-                          <Star key={j} size={11} className="text-warning" fill="#f59e0b" />
-                        ))}
+                        <Star size={11} className="text-warning" fill="#f59e0b" />
+                        <span className="text-xs text-warning font-semibold">{r.rating_value}</span>
                       </div>
                     </div>
                     <div className="text-xs text-text-muted mt-0.5">{r.client_name || 'No client'} {r.order_id && `· ${r.order_id}`}</div>

@@ -175,19 +175,21 @@ export default function SubmitRatingPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-              <Select 
-                label="Rating" 
-                value={String(ratingValue)} 
-                onChange={v => setRatingValue(Number(v))} 
-                options={[
-                  {value:'5',label:'⭐⭐⭐⭐⭐ (5)'},
-                  {value:'4',label:'⭐⭐⭐⭐ (4)'},
-                  {value:'3',label:'⭐⭐⭐ (3)'},
-                  {value:'2',label:'⭐⭐ (2)'},
-                  {value:'1',label:'⭐ (1)'}
-                ]} 
-                id="submit-rating" 
-              />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-text-secondary">Rating<span className="text-red-400 ml-0.5">*</span></label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="1"
+                  max="5"
+                  value={ratingValue}
+                  onChange={e => setRatingValue(Number(e.target.value))}
+                  placeholder="e.g. 5, 4.7"
+                  required
+                  id="submit-rating"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
+                />
+              </div>
               
               <Input 
                 label="Order ID" 
