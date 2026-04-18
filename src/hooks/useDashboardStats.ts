@@ -13,6 +13,8 @@ export function useDashboardStats() {
   const [topMembers, setTopMembers] = useState<MemberWithStats[]>([]);
   const [recentRatings, setRecentRatings] = useState<Rating[]>([]);
   const [allRatings, setAllRatings] = useState<Rating[]>([]);
+  const [hubTeamIds, setHubTeamIds] = useState<string[]>([]);
+  const [endgameTeamIds, setEndgameTeamIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
@@ -31,10 +33,12 @@ export function useDashboardStats() {
       setTotalRatings(countFiveStarOrders(ratings));
 
       // Service line counts
-      const hubTeamIds = teams.filter(t => t.service_line === 'CMS Hub').map(t => t.id);
-      const endgameTeamIds = teams.filter(t => t.service_line === 'CMS Endgame').map(t => t.id);
-      setCmsHubRatings(countFiveStarOrders(ratings.filter(r => hubTeamIds.includes(r.team_id))));
-      setCmsEndgameRatings(countFiveStarOrders(ratings.filter(r => endgameTeamIds.includes(r.team_id))));
+      const hIds = teams.filter(t => t.service_line === 'CMS Hub').map(t => t.id);
+      const eIds = teams.filter(t => t.service_line === 'CMS Endgame').map(t => t.id);
+      setHubTeamIds(hIds);
+      setEndgameTeamIds(eIds);
+      setCmsHubRatings(countFiveStarOrders(ratings.filter(r => hIds.includes(r.team_id))));
+      setCmsEndgameRatings(countFiveStarOrders(ratings.filter(r => eIds.includes(r.team_id))));
 
       // Team stats
       const teamStats: TeamWithStats[] = teams
@@ -63,5 +67,5 @@ export function useDashboardStats() {
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
-  return { totalRatings, cmsHubRatings, cmsEndgameRatings, topTeams, topMembers, recentRatings, allRatings, loading, fetchStats };
+  return { totalRatings, cmsHubRatings, cmsEndgameRatings, topTeams, topMembers, recentRatings, allRatings, hubTeamIds, endgameTeamIds, loading, fetchStats };
 }

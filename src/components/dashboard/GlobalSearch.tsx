@@ -56,7 +56,7 @@ export default function GlobalSearch() {
 
       {/* Dropdown */}
       {open && q && (
-        <div className="absolute top-full mt-2 left-0 right-0 sm:w-80 rounded-xl border border-white/[0.08] shadow-2xl overflow-hidden z-50" style={{ background: 'rgba(15, 23, 42, 0.98)', backdropFilter: 'blur(20px)' }}>
+        <div className="absolute top-full mt-2 left-0 right-0 sm:w-80 rounded-xl border border-white/[0.08] shadow-2xl overflow-hidden z-50" style={{ background: 'var(--search-dropdown-bg)', backdropFilter: 'blur(20px)' }}>
           {hasResults ? (
             <div className="max-h-80 overflow-y-auto">
               {filteredMembers.length > 0 && (

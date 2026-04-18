@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Search, Star, Image, ExternalLink, Calendar, Download, Check, Users, Info, Clock, User, FileEdit, CheckCircle, XCircle } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Plus, Pencil, Trash2, Search, Star, Image, ExternalLink, Calendar, Download, Check, Users, Info, Clock, User, FileEdit, CheckCircle, XCircle, Link2 } from 'lucide-react';
 import { useRatings } from '@/hooks/useRatings';
 import { useTeams } from '@/hooks/useTeams';
 import { useMembers } from '@/hooks/useMembers';
@@ -37,9 +37,17 @@ const ACTION_CONFIG: Record<string, { icon: typeof CheckCircle; color: string; l
   status_changed: { icon: Clock, color: 'text-yellow-400', label: 'Status Changed' },
 };
 
+// --- Grouped Rating Type ---
+interface GroupedRating {
+  key: string; // order_id or rating id for ungrouped
+  orderId: string | null;
+  ratings: Rating[];
+  isGroup: boolean;
+}
+
 export default function RatingsPage() {
   const { user, isSuperAdmin, memberServiceLine } = useAuth();
-  const { ratings, loading, createRating, updateRating, deleteRating, fetchAuditLog } = useRatings();
+  const { ratings, loading, createRating, updateRating, deleteRating, findSiblingRatings, findExistingOrderData, updateSiblingRatings, deleteSiblingRatings, fetchAuditLog } = useRatings();
   const { teams } = useTeams();
   const { members } = useMembers();
   const { showToast } = useToast();
@@ -60,6 +68,14 @@ export default function RatingsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  // Point 2: Auto-fill state
+  const [autoFilled, setAutoFilled] = useState(false);
+
+  // Point 1: Sibling confirmation dialogs
+  const [siblingEditConfirm, setSiblingEditConfirm] = useState(false);
+  const [siblingDeleteConfirm, setSiblingDeleteConfirm] = useState<{ id: string; orderId: string; siblingCount: number } | null>(null);
+  const [pendingEditData, setPendingEditData] = useState<{ id: string; formData: RatingFormData; oldRating: Rating } | null>(null);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -70,6 +86,28 @@ export default function RatingsPage() {
     }
   }, []);
 
+  // --- Point 2: Auto-fill when order_id is entered ---
+  const handleOrderIdChange = (orderId: string) => {
+    setForm(prev => ({ ...prev, order_id: orderId }));
+    setAutoFilled(false);
+
+    if (!editing && orderId.trim().length >= 3) {
+      const existingData = findExistingOrderData(orderId.trim());
+      if (existingData) {
+        setForm(prev => ({
+          ...prev,
+          order_id: orderId,
+          rating_value: existingData.rating_value,
+          client_name: existingData.client_name,
+          review_text: existingData.review_text,
+          screenshot_url: existingData.screenshot_url,
+          date_received: existingData.date_received,
+        }));
+        setAutoFilled(true);
+      }
+    }
+  };
+
   const filtered = ratings.filter(r => {
     const matchSearch = (r.client_name || '').toLowerCase().includes(search.toLowerCase()) || (r.order_id || '').toLowerCase().includes(search.toLowerCase()) || (r.member?.name || '').toLowerCase().includes(search.toLowerCase());
     const matchTeam = !filterTeam || r.team_id === filterTeam;
@@ -79,10 +117,60 @@ export default function RatingsPage() {
     return matchSearch && matchTeam && matchLine && matchDateFrom && matchDateTo;
   });
 
-  const openCreate = () => { setEditing(null); setForm(defaultForm); setMultiMemberIds([]); setModalOpen(true); };
+  // --- Point 4: Group ratings by order_id ---
+  const groupedRatings: GroupedRating[] = useMemo(() => {
+    const groups: GroupedRating[] = [];
+    const orderMap = new Map<string, Rating[]>();
+    const standalone: Rating[] = [];
+
+    for (const r of filtered) {
+      if (r.order_id && r.order_id.trim()) {
+        const key = r.order_id.trim();
+        if (!orderMap.has(key)) orderMap.set(key, []);
+        orderMap.get(key)!.push(r);
+      } else {
+        standalone.push(r);
+      }
+    }
+
+    // Add grouped entries
+    for (const [orderId, rats] of orderMap.entries()) {
+      groups.push({
+        key: `order-${orderId}`,
+        orderId,
+        ratings: rats,
+        isGroup: rats.length > 1,
+      });
+    }
+
+    // Add standalone entries
+    for (const r of standalone) {
+      groups.push({
+        key: r.id,
+        orderId: null,
+        ratings: [r],
+        isGroup: false,
+      });
+    }
+
+    // Sort by most recent date
+    groups.sort((a, b) => {
+      const dateA = a.ratings[0]?.date_received || '';
+      const dateB = b.ratings[0]?.date_received || '';
+      return dateB.localeCompare(dateA);
+    });
+
+    return groups;
+  }, [filtered]);
+
+  // Flatten for pagination count
+  const totalItems = groupedRatings.length;
+
+  const openCreate = () => { setEditing(null); setForm(defaultForm); setMultiMemberIds([]); setAutoFilled(false); setModalOpen(true); };
   const openEdit = (r: Rating) => {
     setEditing(r);
     setForm({ member_id: r.member_id, team_id: r.team_id, rating_value: r.rating_value, order_id: r.order_id || '', client_name: r.client_name || '', review_text: r.review_text || '', screenshot_url: r.screenshot_url || '', date_received: r.date_received });
+    setAutoFilled(false);
     setModalOpen(true);
   };
 
@@ -114,13 +202,60 @@ export default function RatingsPage() {
       setSaving(false);
       if (!hasError) { showToast('Ratings added', 'success'); setModalOpen(false); }
     } else {
-      setSaving(true);
-      const { error } = await updateRating(editing.id, form, user?.email || 'unknown', editing);
-      setSaving(false);
-      if (error) {
-        if (error.includes('unique') || error.includes('23505')) showToast('Duplicate entry for this order ID.', 'error');
-        else showToast(error, 'error');
-      } else { showToast('Rating updated', 'success'); setModalOpen(false); }
+      // --- Point 1: Check for siblings before updating ---
+      const siblings = findSiblingRatings(editing.order_id, editing.id);
+      if (siblings.length > 0) {
+        // Check if any shared fields actually changed
+        const sharedFieldsChanged = ['rating_value', 'client_name', 'review_text', 'screenshot_url', 'date_received'].some(
+          key => String(form[key as keyof RatingFormData] ?? '') !== String(editing[key as keyof Rating] ?? '')
+        );
+        if (sharedFieldsChanged) {
+          // Store pending data and show confirmation
+          setPendingEditData({ id: editing.id, formData: form, oldRating: editing });
+          setSiblingEditConfirm(true);
+          return;
+        }
+      }
+      // No siblings or no shared fields changed — just update this one
+      await performSingleUpdate(editing.id, form, editing);
+    }
+  };
+
+  const performSingleUpdate = async (id: string, formData: RatingFormData, oldRating: Rating) => {
+    setSaving(true);
+    const { error } = await updateRating(id, formData, user?.email || 'unknown', oldRating);
+    setSaving(false);
+    if (error) {
+      if (error.includes('unique') || error.includes('23505')) showToast('Duplicate entry for this order ID.', 'error');
+      else showToast(error, 'error');
+    } else { showToast('Rating updated', 'success'); setModalOpen(false); }
+  };
+
+  // Handle sibling edit confirmation
+  const handleSiblingEditConfirm = async (applyToAll: boolean) => {
+    if (!pendingEditData) return;
+    setSiblingEditConfirm(false);
+
+    if (applyToAll && pendingEditData.oldRating.order_id) {
+      // First update the main rating (including member_id/team_id changes)
+      await performSingleUpdate(pendingEditData.id, pendingEditData.formData, pendingEditData.oldRating);
+      // Then sync shared fields to all siblings
+      await updateSiblingRatings(pendingEditData.oldRating.order_id, pendingEditData.formData, user?.email || 'unknown');
+      showToast('All collaborators updated', 'success');
+    } else {
+      // Just update this one
+      await performSingleUpdate(pendingEditData.id, pendingEditData.formData, pendingEditData.oldRating);
+    }
+    setPendingEditData(null);
+  };
+
+  // --- Point 1: Delete with sibling detection ---
+  const handleDeleteClick = (r: Rating) => {
+    const siblings = findSiblingRatings(r.order_id, r.id);
+    if (siblings.length > 0 && r.order_id) {
+      setSiblingDeleteConfirm({ id: r.id, orderId: r.order_id, siblingCount: siblings.length });
+    } else {
+      setDeleteId(r.id);
     }
   };
 
@@ -132,6 +267,22 @@ export default function RatingsPage() {
     if (error) showToast(error, 'error');
     else showToast('Rating deleted', 'success');
     setDeleteId(null);
+  };
+
+  const handleSiblingDelete = async (deleteAll: boolean) => {
+    if (!siblingDeleteConfirm) return;
+    setSaving(true);
+    if (deleteAll) {
+      const { error } = await deleteSiblingRatings(siblingDeleteConfirm.orderId);
+      if (error) showToast(error, 'error');
+      else showToast(`All ${siblingDeleteConfirm.siblingCount + 1} ratings for this order deleted`, 'success');
+    } else {
+      const { error } = await deleteRating(siblingDeleteConfirm.id);
+      if (error) showToast(error, 'error');
+      else showToast('Rating deleted', 'success');
+    }
+    setSaving(false);
+    setSiblingDeleteConfirm(null);
   };
 
   const teamOptions = teams.filter(t => isActualTeam(t)).map(t => ({ value: t.id, label: `${t.name} (${t.service_line})` }));
@@ -176,12 +327,13 @@ export default function RatingsPage() {
         </div>
       </div>
 
+      {/* --- Point 4: Grouped Ratings Table --- */}
       <div className="glass rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Member</th>
+                <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Member(s)</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Team</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Rating</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Client</th>
@@ -193,61 +345,146 @@ export default function RatingsPage() {
             <tbody>
               {loading ? (
                 <tr><td colSpan={7} className="px-5 py-12 text-center"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
-              ) : filtered.length === 0 ? (
+              ) : groupedRatings.length === 0 ? (
                 <tr><td colSpan={7} className="px-5 py-12 text-center text-text-muted text-sm">No ratings found</td></tr>
-              ) : filtered.slice((page - 1) * pageSize, page * pageSize).map(r => (
-                <tr key={r.id} className="border-b border-border/50 hover:bg-glass transition-colors">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-warning/20 flex items-center justify-center text-warning font-semibold text-xs overflow-hidden">
-                        {r.member?.profile_image ? (
-                          <img src={toDriveDirectUrl(r.member.profile_image)} alt={r.member?.name || ''} className="w-full h-full object-cover" onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.textContent = r.member?.name?.charAt(0) || '?'; }} />
-                        ) : (r.member?.name?.charAt(0) || '?')}
-                      </div>
-                      <span className="text-sm font-medium text-text-primary">{r.member?.name || 'Unknown'}</span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4"><Badge variant={r.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} customColor={r.team?.color}>{r.team?.name || '—'}</Badge></td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-1">
-                      <Star size={12} className="text-warning" fill="#f59e0b" />
-                      <span className="text-xs font-semibold text-warning">{r.rating_value}</span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-sm text-text-muted">{r.client_name || '—'}</td>
-                  <td className="px-5 py-4 text-sm text-text-muted">{new Date(r.date_received).toLocaleDateString()}</td>
-                  <td className="px-5 py-4">
-                    {r.screenshot_url ? (
-                      <a href={r.screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-xs font-medium">
-                        <Image size={13} /> View <ExternalLink size={11} />
-                      </a>
-                    ) : (
-                      <span className="text-text-muted text-xs">—</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-4">
-                    {(isSuperAdmin || memberServiceLine === r.team?.service_line) ? (
-                      <div className="flex items-center justify-end gap-1">
-                        {isSuperAdmin && (
-                          <button onClick={async () => { setInfoRating(r); setAuditLoading(true); const logs = await fetchAuditLog(r.id); setAuditLogs(logs); setAuditLoading(false); }} className="p-2 rounded-lg hover:bg-primary/10 text-text-muted hover:text-primary transition-colors cursor-pointer" title="Rating Info"><Info size={15} /></button>
+              ) : groupedRatings.slice((page - 1) * pageSize, page * pageSize).map(group => {
+                if (group.isGroup) {
+                  // --- GROUPED ROW: Multiple collaborators on one order ---
+                  const primary = group.ratings[0];
+                  return (
+                    <tr key={group.key} className="border-b border-border/50 bg-primary/[0.02]">
+                      {/* Member column: avatar stack */}
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Link2 size={12} className="text-primary-light" />
+                            <span className="text-[10px] font-semibold text-primary-light uppercase tracking-wider">Shared Order</span>
+                          </div>
+                          <div className="flex items-center -space-x-2">
+                            {group.ratings.map((r, idx) => (
+                              <div
+                                key={r.id}
+                                className="w-8 h-8 rounded-full bg-warning/20 flex items-center justify-center text-warning font-semibold text-xs overflow-hidden border-2 border-surface shrink-0"
+                                style={{ zIndex: group.ratings.length - idx }}
+                                title={r.member?.name || 'Unknown'}
+                              >
+                                {r.member?.profile_image ? (
+                                  <img src={toDriveDirectUrl(r.member.profile_image)} alt={r.member?.name || ''} className="w-full h-full object-cover" onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.textContent = r.member?.name?.charAt(0) || '?'; }} />
+                                ) : (r.member?.name?.charAt(0) || '?')}
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {group.ratings.map(r => (
+                              <span key={r.id} className="text-xs text-text-secondary">{r.member?.name || 'Unknown'}{r !== group.ratings[group.ratings.length - 1] ? ',' : ''}</span>
+                            ))}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col gap-1">
+                          {/* Show unique teams */}
+                          {[...new Map(group.ratings.map(r => [r.team_id, r])).values()].map(r => (
+                            <Badge key={r.team_id} variant={r.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} customColor={r.team?.color}>{r.team?.name || '—'}</Badge>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-1">
+                          <Star size={12} className="text-warning" fill="#f59e0b" />
+                          <span className="text-xs font-semibold text-warning">{primary.rating_value}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-sm text-text-muted">{primary.client_name || '—'}</td>
+                      <td className="px-5 py-4 text-sm text-text-muted">{new Date(primary.date_received).toLocaleDateString()}</td>
+                      <td className="px-5 py-4">
+                        {primary.screenshot_url ? (
+                          <a href={primary.screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-xs font-medium">
+                            <Image size={13} /> View <ExternalLink size={11} />
+                          </a>
+                        ) : (
+                          <span className="text-text-muted text-xs">—</span>
                         )}
-                        <button onClick={() => openEdit(r)} className="p-2 rounded-lg hover:bg-glass-light text-text-muted hover:text-text-primary transition-colors cursor-pointer"><Pencil size={15} /></button>
-                        <button onClick={() => setDeleteId(r.id)} className="p-2 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer"><Trash2 size={15} /></button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-end gap-1 px-4">
-                        <span className="text-xs text-text-muted italic">View only</span>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                      </td>
+                      <td className="px-5 py-4">
+                        {(isSuperAdmin || memberServiceLine === primary.team?.service_line) ? (
+                          <div className="flex flex-col items-end gap-1.5">
+                            {/* Per-member edit/delete */}
+                            {group.ratings.map(r => (
+                              <div key={r.id} className="flex items-center gap-1 text-xs">
+                                <span className="text-text-muted truncate max-w-[70px]">{r.member?.name?.split(' ')[0]}</span>
+                                <button onClick={() => openEdit(r)} className="p-1.5 rounded-lg hover:bg-glass-light text-text-muted hover:text-text-primary transition-colors cursor-pointer" title={`Edit ${r.member?.name}'s entry`}><Pencil size={13} /></button>
+                                <button onClick={() => handleDeleteClick(r)} className="p-1.5 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer" title={`Delete ${r.member?.name}'s entry`}><Trash2 size={13} /></button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1 px-4">
+                            <span className="text-xs text-text-muted italic">View only</span>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                } else {
+                  // --- SINGLE ROW: Standard non-grouped rating ---
+                  const r = group.ratings[0];
+                  return (
+                    <tr key={group.key} className="border-b border-border/50 hover:bg-glass transition-colors">
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-warning/20 flex items-center justify-center text-warning font-semibold text-xs overflow-hidden">
+                            {r.member?.profile_image ? (
+                              <img src={toDriveDirectUrl(r.member.profile_image)} alt={r.member?.name || ''} className="w-full h-full object-cover" onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.textContent = r.member?.name?.charAt(0) || '?'; }} />
+                            ) : (r.member?.name?.charAt(0) || '?')}
+                          </div>
+                          <span className="text-sm font-medium text-text-primary">{r.member?.name || 'Unknown'}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4"><Badge variant={r.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} customColor={r.team?.color}>{r.team?.name || '—'}</Badge></td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-1">
+                          <Star size={12} className="text-warning" fill="#f59e0b" />
+                          <span className="text-xs font-semibold text-warning">{r.rating_value}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-sm text-text-muted">{r.client_name || '—'}</td>
+                      <td className="px-5 py-4 text-sm text-text-muted">{new Date(r.date_received).toLocaleDateString()}</td>
+                      <td className="px-5 py-4">
+                        {r.screenshot_url ? (
+                          <a href={r.screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-xs font-medium">
+                            <Image size={13} /> View <ExternalLink size={11} />
+                          </a>
+                        ) : (
+                          <span className="text-text-muted text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-4">
+                        {(isSuperAdmin || memberServiceLine === r.team?.service_line) ? (
+                          <div className="flex items-center justify-end gap-1">
+                            {isSuperAdmin && (
+                              <button onClick={async () => { setInfoRating(r); setAuditLoading(true); const logs = await fetchAuditLog(r.id); setAuditLogs(logs); setAuditLoading(false); }} className="p-2 rounded-lg hover:bg-primary/10 text-text-muted hover:text-primary transition-colors cursor-pointer" title="Rating Info"><Info size={15} /></button>
+                            )}
+                            <button onClick={() => openEdit(r)} className="p-2 rounded-lg hover:bg-glass-light text-text-muted hover:text-text-primary transition-colors cursor-pointer"><Pencil size={15} /></button>
+                            <button onClick={() => handleDeleteClick(r)} className="p-2 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer"><Trash2 size={15} /></button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1 px-4">
+                            <span className="text-xs text-text-muted italic">View only</span>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                }
+              })}
             </tbody>
           </table>
         </div>
-        <Pagination currentPage={page} totalItems={filtered.length} pageSize={pageSize} onPageChange={(p) => setPage(p)} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
+        <Pagination currentPage={page} totalItems={totalItems} pageSize={pageSize} onPageChange={(p) => setPage(p)} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
       </div>
 
+      {/* --- Add/Edit Modal with Point 2: Auto-fill --- */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Rating' : 'Add Rating'} size="md">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Select label="Team" value={form.team_id} onChange={handleTeamChange} options={teamOptions} placeholder="Select team" required id="rating-team" />
@@ -322,9 +559,18 @@ export default function RatingsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Input label="Rating" type="number" value={String(form.rating_value)} onChange={v => setForm({ ...form, rating_value: Number(v) })} placeholder="e.g. 5, 4.7" required id="rating-value" />
-            <Input label="Order ID" value={form.order_id} onChange={v => setForm({ ...form, order_id: v })} placeholder="FO-XXXXX" id="rating-order" />
+            <Input label="Order ID" value={form.order_id} onChange={handleOrderIdChange} placeholder="FO-XXXXX" id="rating-order" />
             <Input label="Date Received" type="date" value={form.date_received} onChange={v => setForm({ ...form, date_received: v })} id="rating-date" />
           </div>
+
+          {/* Point 2: Auto-fill indicator */}
+          {autoFilled && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-xs text-primary-light">
+              <Link2 size={14} />
+              <span>Fields auto-filled from existing Order <strong>{form.order_id}</strong>. Shared data is synchronized.</span>
+            </div>
+          )}
+
           <Input label="Client Name" value={form.client_name} onChange={v => setForm({ ...form, client_name: v })} placeholder="Client name" id="rating-client" />
           <Textarea label="Review Text" value={form.review_text} onChange={v => setForm({ ...form, review_text: v })} placeholder="Optional review text..." id="rating-review" />
           <Input label="Screenshot URL" value={form.screenshot_url} onChange={v => setForm({ ...form, screenshot_url: v })} placeholder="https://i.imgur.com/... or any image link" required id="rating-screenshot" />
@@ -335,7 +581,60 @@ export default function RatingsPage() {
         </form>
       </Modal>
 
+      {/* Standard delete confirmation (no siblings) */}
       <ConfirmDialog isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={handleDelete} title="Delete Rating" message="This rating will be permanently removed. This action cannot be undone." loading={saving} />
+
+      {/* --- Point 1: Sibling Delete Confirmation --- */}
+      <Modal isOpen={!!siblingDeleteConfirm} onClose={() => setSiblingDeleteConfirm(null)} title="Shared Order Detected" size="sm">
+        {siblingDeleteConfirm && (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-warning/10 border border-warning/20">
+              <Users size={20} className="text-warning shrink-0" />
+              <p className="text-sm text-text-secondary">
+                This order is shared by <strong className="text-text-primary">{siblingDeleteConfirm.siblingCount + 1} members</strong>. 
+                How would you like to proceed?
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button variant="danger" onClick={() => handleSiblingDelete(true)} disabled={saving} className="w-full justify-center">
+                {saving ? 'Deleting...' : `Delete all ${siblingDeleteConfirm.siblingCount + 1} ratings`}
+              </Button>
+              <Button variant="ghost" onClick={() => handleSiblingDelete(false)} disabled={saving} className="w-full justify-center">
+                Delete only this member&apos;s entry
+              </Button>
+              <Button variant="ghost" onClick={() => setSiblingDeleteConfirm(null)} className="w-full justify-center text-text-muted">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* --- Point 1: Sibling Edit Confirmation --- */}
+      <Modal isOpen={siblingEditConfirm} onClose={() => { setSiblingEditConfirm(false); setPendingEditData(null); }} title="Shared Order Detected" size="sm">
+        {pendingEditData && (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/10 border border-primary/20">
+              <Link2 size={20} className="text-primary-light shrink-0" />
+              <p className="text-sm text-text-secondary">
+                This order is shared with <strong className="text-text-primary">{findSiblingRatings(pendingEditData.oldRating.order_id, pendingEditData.id).length} other member(s)</strong>. 
+                Apply shared field changes (rating, client, review, screenshot, date) to everyone?
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => handleSiblingEditConfirm(true)} disabled={saving} className="w-full justify-center">
+                {saving ? 'Updating...' : 'Update all collaborators'}
+              </Button>
+              <Button variant="ghost" onClick={() => handleSiblingEditConfirm(false)} disabled={saving} className="w-full justify-center">
+                Update only this member
+              </Button>
+              <Button variant="ghost" onClick={() => { setSiblingEditConfirm(false); setPendingEditData(null); }} className="w-full justify-center text-text-muted">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Rating Info Modal (Super Admin Only) */}
       <Modal isOpen={!!infoRating} onClose={() => { setInfoRating(null); setAuditLogs([]); }} title="Rating Details" size="md">

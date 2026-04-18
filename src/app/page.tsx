@@ -5,9 +5,11 @@ import { Star, TrendingUp, Zap, Shield, ArrowRight, ArrowUpRight, ArrowDownRight
 import Link from 'next/link';
 import StatsCard from '@/components/dashboard/StatsCard';
 import LeaderboardCard from '@/components/dashboard/LeaderboardCard';
+import SpotlightCard from '@/components/dashboard/SpotlightCard';
+import GoalProgress from '@/components/dashboard/GoalProgress';
 import TeamChart from '@/components/dashboard/TeamChart';
 import ServiceLineChart from '@/components/dashboard/ServiceLineChart';
-import MonthlyTrendChart from '@/components/dashboard/MonthlyTrendChart';
+import ServiceLineComparison from '@/components/dashboard/ServiceLineComparison';
 import RecentRatings from '@/components/dashboard/RecentRatings';
 import GlobalSearch from '@/components/dashboard/GlobalSearch';
 import { StatsCardSkeleton, LeaderboardSkeleton, ChartSkeleton, RecentRatingsSkeleton } from '@/components/ui/Skeleton';
@@ -15,7 +17,7 @@ import ThemeToggle from '@/components/ui/ThemeToggle';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 
 export default function PublicDashboard() {
-  const { totalRatings, cmsHubRatings, cmsEndgameRatings, topTeams, topMembers, recentRatings, allRatings, loading } = useDashboardStats();
+  const { totalRatings, cmsHubRatings, cmsEndgameRatings, topTeams, topMembers, recentRatings, allRatings, hubTeamIds, endgameTeamIds, loading } = useDashboardStats();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Calculate month-over-month change
@@ -38,7 +40,7 @@ export default function PublicDashboard() {
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-white/[0.06]" style={{ background: 'rgba(11, 17, 32, 0.8)', backdropFilter: 'blur(20px)' }}>
+      <header className="sticky top-0 z-30 border-b border-white/[0.06]" style={{ background: 'var(--header-bg)', backdropFilter: 'blur(20px)' }}>
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -169,23 +171,33 @@ export default function PublicDashboard() {
               />
             </div>
 
-            {/* Leaderboard */}
-            <LeaderboardCard topMember={topMembers[0]} topTeam={topTeams[0]} />
+            {/* NEW: Spotlight + Goal Progress Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <SpotlightCard members={topMembers} allRatings={allRatings} />
+              </div>
+              <div className="lg:col-span-1">
+                <GoalProgress allRatings={allRatings} monthlyGoal={30} />
+              </div>
+            </div>
+
+            {/* UPDATED: Top 5 Leaderboard */}
+            <LeaderboardCard topMembers={topMembers} topTeam={topTeams[0]} />
 
             {/* Team Performance — Full Width */}
             <TeamChart teams={topTeams} />
 
-            {/* Service Lines + Trend */}
+            {/* NEW: Hub vs Endgame Comparison + Service Lines Pie */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 h-full">
+                <ServiceLineComparison allRatings={allRatings} hubTeamIds={hubTeamIds} endgameTeamIds={endgameTeamIds} />
+              </div>
               <div className="lg:col-span-1 h-full">
                 <div className="h-full"><ServiceLineChart cmsHubRatings={cmsHubRatings} cmsEndgameRatings={cmsEndgameRatings} /></div>
               </div>
-              <div className="lg:col-span-2 h-full">
-                <MonthlyTrendChart ratings={allRatings} />
-              </div>
             </div>
 
-            {/* Recent Ratings */}
+            {/* Recent Ratings Carousel */}
             <RecentRatings ratings={recentRatings} />
           </div>
         )}

@@ -95,6 +95,64 @@ export function useRatings() {
     return { error: error?.message ?? null };
   };
 
+  // --- Collaborative Rating Helpers ---
+
+  // Find all sibling ratings sharing the same order_id (excluding a specific rating)
+  const findSiblingRatings = (orderId: string | null, excludeId?: string): Rating[] => {
+    if (!orderId) return [];
+    return ratings.filter(r => r.order_id === orderId && r.id !== excludeId);
+  };
+
+  // Find existing order data for auto-fill when entering a known order_id
+  const findExistingOrderData = (orderId: string): Pick<RatingFormData, 'rating_value' | 'client_name' | 'review_text' | 'screenshot_url' | 'date_received'> | null => {
+    if (!orderId) return null;
+    const existing = ratings.find(r => r.order_id === orderId);
+    if (!existing) return null;
+    return {
+      rating_value: existing.rating_value,
+      client_name: existing.client_name || '',
+      review_text: existing.review_text || '',
+      screenshot_url: existing.screenshot_url || '',
+      date_received: existing.date_received,
+    };
+  };
+
+  // Update shared fields across all sibling ratings with the same order_id
+  const updateSiblingRatings = async (orderId: string, sharedFields: Partial<RatingFormData>, userEmail?: string) => {
+    // Only update the order-level fields that should be synchronized
+    const syncPayload: Record<string, unknown> = {};
+    const syncKeys: (keyof RatingFormData)[] = ['rating_value', 'client_name', 'review_text', 'screenshot_url', 'date_received'];
+    for (const key of syncKeys) {
+      if (key in sharedFields) {
+        syncPayload[key] = sharedFields[key] || null;
+      }
+    }
+    if (Object.keys(syncPayload).length === 0) return;
+
+    const { error } = await supabase
+      .from('ratings')
+      .update(syncPayload)
+      .eq('order_id', orderId);
+
+    if (!error) {
+      if (userEmail) {
+        // Log audit for each sibling
+        const siblings = ratings.filter(r => r.order_id === orderId);
+        for (const s of siblings) {
+          await insertAuditLog(s.id, 'edited', userEmail, { _note: { old: '', new: 'Bulk-synced from shared order update' } });
+        }
+      }
+      await fetchRatings();
+    }
+  };
+
+  // Delete all sibling ratings sharing the same order_id
+  const deleteSiblingRatings = async (orderId: string) => {
+    const { error } = await supabase.from('ratings').delete().eq('order_id', orderId);
+    if (!error) await fetchRatings();
+    return { error: error?.message ?? null };
+  };
+
   // Fetch audit log for a specific rating
   const fetchAuditLog = async (ratingId: string): Promise<RatingAuditLog[]> => {
     const { data, error } = await supabase
@@ -106,5 +164,5 @@ export function useRatings() {
     return data as RatingAuditLog[];
   };
 
-  return { ratings, pendingRatings, loading, fetchRatings, createRating, updateRating, updateRatingStatus, deleteRating, fetchAuditLog };
+  return { ratings, pendingRatings, loading, fetchRatings, createRating, updateRating, updateRatingStatus, deleteRating, findSiblingRatings, findExistingOrderData, updateSiblingRatings, deleteSiblingRatings, fetchAuditLog };
 }

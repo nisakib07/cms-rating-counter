@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Star, Clock, ExternalLink, FileText, Quote, User, Hash, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Rating } from '@/types/database';
 import Badge from '@/components/ui/Badge';
@@ -18,8 +18,8 @@ function RatingCard({ rating, index, onOpenLightbox }: { rating: Rating; index: 
 
   return (
     <div
-      className="group glass rounded-2xl overflow-hidden border border-white/[0.04] hover:border-white/[0.12] transition-all duration-500 animate-fade-in flex flex-col card-hover"
-      style={{ animationDelay: `${index * 80}ms` }}
+      className="group flex-shrink-0 w-[340px] glass rounded-2xl overflow-hidden border border-white/[0.04] hover:border-white/[0.12] transition-all duration-500 animate-fade-in flex flex-col card-hover"
+      style={{ animationDelay: `${index * 80}ms`, scrollSnapAlign: 'start' }}
     >
       {/* Screenshot Hero */}
       <div className="relative w-full aspect-[16/10] bg-surface overflow-hidden cursor-pointer" onClick={onOpenLightbox}>
@@ -122,11 +122,29 @@ function RatingCard({ rating, index, onOpenLightbox }: { rating: Rating; index: 
 }
 
 export default function RecentRatings({ ratings }: RecentRatingsProps) {
-  const CARDS_PER_PAGE = 6;
-  const [page, setPage] = useState(0);
-  const totalPages = Math.ceil(ratings.length / CARDS_PER_PAGE);
-  const visible = ratings.slice(page * CARDS_PER_PAGE, (page + 1) * CARDS_PER_PAGE);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const checkScroll = () => {
+    if (!scrollRef.current) return;
+    const el = scrollRef.current;
+    setCanScrollLeft(el.scrollLeft > 10);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
+  };
+
+  useEffect(() => {
+    checkScroll();
+    const el = scrollRef.current;
+    if (el) el.addEventListener('scroll', checkScroll);
+    return () => { if (el) el.removeEventListener('scroll', checkScroll); };
+  }, [ratings.length]);
+
+  const scroll = (dir: 'left' | 'right') => {
+    if (!scrollRef.current) return;
+    scrollRef.current.scrollBy({ left: dir === 'left' ? -360 : 360, behavior: 'smooth' });
+  };
 
   return (
     <div className="glass rounded-2xl p-7 animate-fade-in delay-500 relative overflow-hidden">
@@ -144,35 +162,34 @@ export default function RecentRatings({ ratings }: RecentRatingsProps) {
           )}
         </h3>
 
-        {/* Pagination controls */}
-        {totalPages > 1 && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage(p => Math.max(0, p - 1))}
-              disabled={page === 0}
-              className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/[0.04] border border-white/[0.06] text-text-muted hover:text-text-primary hover:bg-white/[0.08] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <span className="text-xs text-text-muted tabular-nums min-w-[40px] text-center">
-              {page + 1} / {totalPages}
-            </span>
-            <button
-              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-              disabled={page >= totalPages - 1}
-              className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/[0.04] border border-white/[0.06] text-text-muted hover:text-text-primary hover:bg-white/[0.08] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        )}
+        {/* Scroll controls */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => scroll('left')}
+            disabled={!canScrollLeft}
+            className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/[0.04] border border-white/[0.06] text-text-muted hover:text-text-primary hover:bg-white/[0.08] disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <button
+            onClick={() => scroll('right')}
+            disabled={!canScrollRight}
+            className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/[0.04] border border-white/[0.06] text-text-muted hover:text-text-primary hover:bg-white/[0.08] disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
       </div>
 
-      {/* Card Grid */}
+      {/* Horizontal Carousel */}
       {ratings.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {visible.map((rating, i) => (
-            <RatingCard key={rating.id} rating={rating} index={i} onOpenLightbox={() => setLightboxIndex(page * CARDS_PER_PAGE + i)} />
+        <div
+          ref={scrollRef}
+          className="flex gap-5 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1"
+          style={{ scrollSnapType: 'x mandatory' }}
+        >
+          {ratings.map((rating, i) => (
+            <RatingCard key={rating.id} rating={rating} index={i} onOpenLightbox={() => setLightboxIndex(i)} />
           ))}
         </div>
       ) : (
