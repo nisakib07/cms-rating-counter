@@ -67,20 +67,22 @@ interface TextareaProps {
   onChange: (value: string) => void;
   placeholder?: string;
   rows?: number;
+  required?: boolean;
   id?: string;
   className?: string;
 }
 
-export function Textarea({ label, value, onChange, placeholder, rows = 3, id, className = '' }: TextareaProps) {
+export function Textarea({ label, value, onChange, placeholder, rows = 3, required, id, className = '' }: TextareaProps) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      {label && <label className="text-sm font-medium text-text-secondary">{label}</label>}
+      {label && <label className="text-sm font-medium text-text-secondary">{label}{required && <span className="text-red-400 ml-0.5">*</span>}</label>}
       <textarea
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={rows}
+        required={required}
         className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm resize-none"
       />
     </div>

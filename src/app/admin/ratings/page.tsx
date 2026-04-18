@@ -559,8 +559,8 @@ export default function RatingsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Input label="Rating" type="number" value={String(form.rating_value)} onChange={v => setForm({ ...form, rating_value: Number(v) })} placeholder="e.g. 5, 4.7" required id="rating-value" />
-            <Input label="Order ID" value={form.order_id} onChange={handleOrderIdChange} placeholder="FO-XXXXX" id="rating-order" />
-            <Input label="Date Received" type="date" value={form.date_received} onChange={v => setForm({ ...form, date_received: v })} id="rating-date" />
+            <Input label="Order ID" value={form.order_id} onChange={handleOrderIdChange} placeholder="FO-XXXXX" required id="rating-order" />
+            <Input label="Date Received" type="date" value={form.date_received} onChange={v => setForm({ ...form, date_received: v })} required id="rating-date" />
           </div>
 
           {/* Point 2: Auto-fill indicator */}
@@ -571,12 +571,12 @@ export default function RatingsPage() {
             </div>
           )}
 
-          <Input label="Client Name" value={form.client_name} onChange={v => setForm({ ...form, client_name: v })} placeholder="Client name" id="rating-client" />
-          <Textarea label="Review Text" value={form.review_text} onChange={v => setForm({ ...form, review_text: v })} placeholder="Optional review text..." id="rating-review" />
-          <Input label="Screenshot URL" value={form.screenshot_url} onChange={v => setForm({ ...form, screenshot_url: v })} placeholder="https://i.imgur.com/... or any image link" required id="rating-screenshot" />
+          <Input label="Client Name" value={form.client_name} onChange={v => setForm({ ...form, client_name: v })} placeholder="Client name" required id="rating-client" />
+          <Textarea label="Review Text" value={form.review_text} onChange={v => setForm({ ...form, review_text: v })} placeholder="What did the client say?" required id="rating-review" />
+          <Input label="Screenshot URL" value={form.screenshot_url} onChange={v => setForm({ ...form, screenshot_url: v })} placeholder="Only Lightshot link is accepted (https://prnt.sc/...)" required id="rating-screenshot" />
           <div className="flex gap-3 justify-end mt-2">
             <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={saving || !form.screenshot_url.trim() || (!editing && multiMemberIds.length === 0)}>{saving ? 'Saving...' : editing ? 'Update' : 'Add'}</Button>
+            <Button type="submit" disabled={saving || !form.order_id.trim() || !form.client_name.trim() || !form.review_text.trim() || !form.screenshot_url.trim() || (!editing && multiMemberIds.length === 0)}>{saving ? 'Saving...' : editing ? 'Update' : 'Add'}</Button>
           </div>
         </form>
       </Modal>

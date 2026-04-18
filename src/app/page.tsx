@@ -177,7 +177,7 @@ export default function PublicDashboard() {
                 <SpotlightCard members={topMembers} allRatings={allRatings} />
               </div>
               <div className="lg:col-span-1">
-                <GoalProgress allRatings={allRatings} monthlyGoal={30} />
+                <GoalProgress allRatings={allRatings} monthlyGoal={100} />
               </div>
             </div>
 

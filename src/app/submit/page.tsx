@@ -143,7 +143,7 @@ export default function SubmitRatingPage() {
             </div>
 
             <div className="flex flex-col gap-1.5 min-h-[70px]">
-              <label className="text-sm font-medium text-text-secondary">Members <span className="text-text-muted font-normal">(Select all that collaborated)</span></label>
+              <label className="text-sm font-medium text-text-secondary">Members<span className="text-red-400 ml-0.5">*</span> <span className="text-text-muted font-normal">(Select all that collaborated)</span></label>
               {!teamId ? (
                 <div className="text-sm text-text-muted mt-2">Select a team first to view members.</div>
               ) : filteredMembers.length === 0 ? (
@@ -214,7 +214,8 @@ export default function SubmitRatingPage() {
               label="Client Name" 
               value={clientName} 
               onChange={setClientName} 
-              placeholder="Fiverr client name (optional)" 
+              placeholder="Fiverr client name" 
+              required
               id="submit-client" 
             />
             
@@ -222,7 +223,8 @@ export default function SubmitRatingPage() {
               label="Review Text" 
               value={reviewText} 
               onChange={setReviewText} 
-              placeholder="What did the client say? (optional)" 
+              placeholder="What did the client say?" 
+              required
               id="submit-review" 
             />
             
@@ -231,7 +233,7 @@ export default function SubmitRatingPage() {
                 label="Screenshot URL" 
                 value={screenshotUrl} 
                 onChange={setScreenshotUrl} 
-                placeholder="Link to rating screenshot (proof)" 
+                placeholder="Only Lightshot link is accepted (https://prnt.sc/...)" 
                 required
                 id="submit-screenshot" 
               />
@@ -239,7 +241,7 @@ export default function SubmitRatingPage() {
 
             <div className="flex gap-3 justify-end mt-4 pt-4 border-t border-white/[0.04]">
               <Button type="button" variant="ghost" onClick={() => router.push('/')}>Cancel</Button>
-              <Button type="submit" disabled={submitting || memberIds.length === 0 || !teamId || !orderId || !screenshotUrl}>
+              <Button type="submit" disabled={submitting || memberIds.length === 0 || !teamId || !orderId || !clientName || !reviewText || !screenshotUrl}>
                 {submitting ? 'Submitting...' : 'Submit Rating'}
               </Button>
             </div>

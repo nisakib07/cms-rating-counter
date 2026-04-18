@@ -10,7 +10,7 @@ interface GoalProgressProps {
   monthlyGoal?: number;
 }
 
-export default function GoalProgress({ allRatings, monthlyGoal = 20 }: GoalProgressProps) {
+export default function GoalProgress({ allRatings, monthlyGoal = 100 }: GoalProgressProps) {
   const progress = useMemo(() => {
     const now = new Date();
     const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
