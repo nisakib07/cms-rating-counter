@@ -10,12 +10,14 @@ import Button from '@/components/ui/Button';
 import { Input, Select, Textarea } from '@/components/ui/Input';
 import { Star, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { isActualTeam } from '@/lib/utils';
+import { useFiverrProfiles } from '@/hooks/useFiverrProfiles';
 
 export default function SubmitRatingPage() {
   const { teams, loading: teamsLoading } = useTeams();
   const { members, loading: membersLoading } = useMembers();
   const { showToast } = useToast();
   const router = useRouter();
+  const { profiles } = useFiverrProfiles();
 
   const [serviceLine, setServiceLine] = useState('');
   const [teamId, setTeamId] = useState('');
@@ -25,6 +27,7 @@ export default function SubmitRatingPage() {
   const [clientName, setClientName] = useState('');
   const [reviewText, setReviewText] = useState('');
   const [screenshotUrl, setScreenshotUrl] = useState('');
+  const [profileName, setProfileName] = useState('');
   const [dateReceived, setDateReceived] = useState(new Date().toISOString().split('T')[0]);
 
   const [submitting, setSubmitting] = useState(false);
@@ -59,6 +62,7 @@ export default function SubmitRatingPage() {
         client_name: clientName || null,
         review_text: reviewText || null,
         screenshot_url: screenshotUrl,
+        profile_name: profileName || null,
         date_received: dateReceived,
         status: 'pending'
       }));
@@ -209,6 +213,16 @@ export default function SubmitRatingPage() {
                 id="submit-date" 
               />
             </div>
+
+            <Select
+              label="Fiverr Profile"
+              value={profileName}
+              onChange={setProfileName}
+              options={profiles.map(p => ({ value: p, label: p }))}
+              placeholder="Select Fiverr profile"
+              required
+              id="submit-profile"
+            />
 
             <Input 
               label="Client Name" 

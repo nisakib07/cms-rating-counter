@@ -40,6 +40,7 @@ export function useRatings() {
     if (!payload.client_name) delete payload.client_name;
     if (!payload.review_text) delete payload.review_text;
     if (!payload.screenshot_url) delete payload.screenshot_url;
+    if (!payload.profile_name) delete payload.profile_name;
     if (!payload.status) payload.status = 'approved';
     const { data, error } = await supabase.from('ratings').insert(payload).select('id').single();
     if (!error && data && userEmail) {

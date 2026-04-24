@@ -17,7 +17,8 @@ import type { Rating, RatingFormData, RatingAuditLog } from '@/types/database';
 import { toDriveDirectUrl, exportToCSV, isActualTeam, getNickname } from '@/lib/utils';
 import StarRating from '@/components/ui/StarRating';
 import BulkImport from './BulkImport';
-const defaultForm: RatingFormData = { member_id: '', team_id: '', rating_value: 5, order_id: '', client_name: '', review_text: '', screenshot_url: '', date_received: new Date().toISOString().split('T')[0] };
+import { useFiverrProfiles } from '@/hooks/useFiverrProfiles';
+const defaultForm: RatingFormData = { member_id: '', team_id: '', rating_value: 5, order_id: '', client_name: '', review_text: '', screenshot_url: '', profile_name: '', date_received: new Date().toISOString().split('T')[0] };
 
 const FIELD_LABELS: Record<string, string> = {
   member_id: 'Member',
@@ -52,6 +53,7 @@ export default function RatingsPage() {
   const { teams } = useTeams();
   const { members } = useMembers();
   const { showToast } = useToast();
+  const { profiles } = useFiverrProfiles();
   const [search, setSearch] = useState('');
   const [filterTeam, setFilterTeam] = useState('');
   const [filterLine, setFilterLine] = useState('');
@@ -171,7 +173,7 @@ export default function RatingsPage() {
   const openCreate = () => { setEditing(null); setForm(defaultForm); setMultiMemberIds([]); setAutoFilled(false); setModalOpen(true); };
   const openEdit = (r: Rating) => {
     setEditing(r);
-    setForm({ member_id: r.member_id, team_id: r.team_id, rating_value: r.rating_value, order_id: r.order_id || '', client_name: r.client_name || '', review_text: r.review_text || '', screenshot_url: r.screenshot_url || '', date_received: r.date_received });
+    setForm({ member_id: r.member_id, team_id: r.team_id, rating_value: r.rating_value, order_id: r.order_id || '', client_name: r.client_name || '', review_text: r.review_text || '', screenshot_url: r.screenshot_url || '', profile_name: r.profile_name || '', date_received: r.date_received });
     setAutoFilled(false);
     setModalOpen(true);
   };
@@ -576,6 +578,7 @@ export default function RatingsPage() {
           )}
 
           <Input label="Client Name" value={form.client_name} onChange={v => setForm({ ...form, client_name: v })} placeholder="Client name" required id="rating-client" />
+          <Select label="Fiverr Profile" value={form.profile_name} onChange={v => setForm({ ...form, profile_name: v })} options={profiles.map(p => ({ value: p, label: p }))} placeholder="Select Fiverr profile" required id="rating-profile" />
           <Textarea label="Review Text" value={form.review_text} onChange={v => setForm({ ...form, review_text: v })} placeholder="What did the client say?" required id="rating-review" />
           <Input label="Screenshot URL" value={form.screenshot_url} onChange={v => setForm({ ...form, screenshot_url: v })} placeholder="Only Lightshot link is accepted (https://prnt.sc/...)" required id="rating-screenshot" />
           <div className="flex gap-3 justify-end mt-2">

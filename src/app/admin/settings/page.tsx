@@ -1,18 +1,25 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings, Target, Save } from 'lucide-react';
+import { Settings, Target, Save, Globe, Plus, X, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import Button from '@/components/ui/Button';
+import { useFiverrProfiles } from '@/hooks/useFiverrProfiles';
 
 export default function SettingsPage() {
   const { isSuperAdmin } = useAuth();
   const { showToast } = useToast();
+  const { profiles, saveProfiles, loading: profilesLoading } = useFiverrProfiles();
   const [monthlyGoal, setMonthlyGoal] = useState(100);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Profile management
+  const [newProfile, setNewProfile] = useState('');
+  const [editedProfiles, setEditedProfiles] = useState<string[]>([]);
+  const [profilesDirty, setProfilesDirty] = useState(false);
 
   useEffect(() => {
     async function fetch() {
@@ -29,7 +36,14 @@ export default function SettingsPage() {
     fetch();
   }, []);
 
-  const handleSave = async () => {
+  // Sync editedProfiles when profiles load
+  useEffect(() => {
+    if (profiles.length > 0 && editedProfiles.length === 0) {
+      setEditedProfiles([...profiles]);
+    }
+  }, [profiles]);
+
+  const handleSaveGoal = async () => {
     setSaving(true);
     const { error } = await supabase
       .from('settings')
@@ -38,7 +52,35 @@ export default function SettingsPage() {
     if (error) {
       showToast(`Failed to save: ${error.message}`, 'error');
     } else {
-      showToast('Settings saved successfully', 'success');
+      showToast('Monthly goal saved', 'success');
+    }
+  };
+
+  const handleAddProfile = () => {
+    const name = newProfile.trim().toLowerCase();
+    if (!name || editedProfiles.includes(name)) {
+      if (editedProfiles.includes(name)) showToast('Profile already exists', 'error');
+      return;
+    }
+    setEditedProfiles([...editedProfiles, name].sort());
+    setNewProfile('');
+    setProfilesDirty(true);
+  };
+
+  const handleRemoveProfile = (name: string) => {
+    setEditedProfiles(editedProfiles.filter(p => p !== name));
+    setProfilesDirty(true);
+  };
+
+  const handleSaveProfiles = async () => {
+    setSaving(true);
+    const { error } = await saveProfiles(editedProfiles);
+    setSaving(false);
+    if (error) {
+      showToast(`Failed to save: ${error}`, 'error');
+    } else {
+      showToast(`${editedProfiles.length} profiles saved`, 'success');
+      setProfilesDirty(false);
     }
   };
 
@@ -62,14 +104,14 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {loading ? (
+      {loading || profilesLoading ? (
         <div className="flex items-center justify-center py-24">
           <div className="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="max-w-lg">
+        <div className="max-w-2xl flex flex-col gap-6">
           {/* Monthly Goal */}
-          <div className="glass rounded-2xl p-6 mb-6">
+          <div className="glass rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
                 <Target size={20} className="text-emerald-400" />
@@ -90,19 +132,66 @@ export default function SettingsPage() {
                 className="w-32 px-4 py-2.5 rounded-xl bg-surface border border-border text-text-primary text-lg font-bold text-center focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
               />
               <span className="text-sm text-text-muted">five-star ratings</span>
-            </div>
-
-            <div className="flex items-center gap-2 mt-4 text-xs text-text-muted">
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white/[0.04]">Current: {monthlyGoal}</span>
-              <span>Applies to the goal tracker on the homepage</span>
+              <div className="ml-auto">
+                <Button onClick={handleSaveGoal} disabled={saving} size="sm">
+                  <Save size={14} /> Save
+                </Button>
+              </div>
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <Button onClick={handleSave} disabled={saving}>
-              <Save size={16} />
-              {saving ? 'Saving...' : 'Save Settings'}
-            </Button>
+          {/* Fiverr Profiles */}
+          <div className="glass rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+                <Globe size={20} className="text-primary-light" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-bold text-text-primary">Fiverr Profiles</h3>
+                <p className="text-xs text-text-muted">Manage the list of Fiverr profile names available in the rating form</p>
+              </div>
+              <span className="text-xs text-text-muted font-medium px-2.5 py-1 rounded-lg bg-white/[0.04]">{editedProfiles.length} profiles</span>
+            </div>
+
+            {/* Add new */}
+            <div className="flex items-center gap-2 mb-4">
+              <input
+                value={newProfile}
+                onChange={e => setNewProfile(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddProfile())}
+                placeholder="Add new profile name..."
+                className="flex-1 px-3 py-2 rounded-lg bg-surface border border-border text-text-primary placeholder:text-text-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <Button onClick={handleAddProfile} size="sm" disabled={!newProfile.trim()}>
+                <Plus size={14} /> Add
+              </Button>
+            </div>
+
+            {/* Profile list */}
+            <div className="max-h-[300px] overflow-y-auto rounded-xl border border-white/[0.06] bg-surface/30">
+              <div className="flex flex-wrap gap-1.5 p-3">
+                {editedProfiles.map(p => (
+                  <div key={p} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06] text-sm text-text-secondary hover:border-red-400/30 group transition-all">
+                    <span className="font-mono text-xs">{p}</span>
+                    <button
+                      onClick={() => handleRemoveProfile(p)}
+                      className="w-4 h-4 rounded flex items-center justify-center text-text-muted opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all cursor-pointer"
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {profilesDirty && (
+              <div className="flex justify-end mt-4">
+                <Button onClick={handleSaveProfiles} disabled={saving}>
+                  <Save size={14} />
+                  {saving ? 'Saving...' : 'Save Profiles'}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}

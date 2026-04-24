@@ -57,6 +57,7 @@ export interface Rating {
   client_name: string | null;
   review_text: string | null;
   screenshot_url: string | null;
+  profile_name: string | null;
   date_received: string;
   status: 'pending' | 'approved' | 'rejected';
   approved_by: string | null;
@@ -112,6 +113,7 @@ export interface RatingFormData {
   client_name: string;
   review_text: string;
   screenshot_url: string;
+  profile_name: string;
   date_received: string;
   status?: 'pending' | 'approved' | 'rejected';
 }
