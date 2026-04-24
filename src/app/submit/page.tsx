@@ -45,7 +45,7 @@ export default function SubmitRatingPage() {
   }, [teamId]);
 
   const filteredTeams = teams.filter(t => t.service_line === serviceLine && isActualTeam(t));
-  const filteredMembers = members.filter(m => m.team_id === teamId);
+  const filteredMembers = members.filter(m => m.team_id === teamId && m.is_active !== false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

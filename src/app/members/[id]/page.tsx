@@ -124,6 +124,9 @@ export default function MemberProfilePage() {
                 <Badge variant={member.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} customColor={member.team?.color}>
                   {member.team?.name}
                 </Badge>
+                {member.is_active === false && (
+                  <Badge variant="danger">Inactive</Badge>
+                )}
               </div>
               {member.email && <p className="text-sm text-text-muted">{member.email}</p>}
             </div>

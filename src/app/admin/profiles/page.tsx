@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Globe, Star, TrendingUp, Search, ArrowUpRight } from 'lucide-react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { countFiveStarOrders } from '@/lib/utils';
 import StarRating from '@/components/ui/StarRating';
@@ -185,15 +186,13 @@ export default function ProfilesPage() {
                           {p.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <a
-                            href={`https://www.fiverr.com/${p.name}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <Link
+                            href={`/profiles/${encodeURIComponent(p.name)}`}
                             className="text-sm font-semibold text-text-primary hover:text-primary-light transition-colors flex items-center gap-1"
                           >
                             {p.name}
                             <ArrowUpRight size={10} className="text-text-muted" />
-                          </a>
+                          </Link>
                         </div>
                       </div>
                     </td>

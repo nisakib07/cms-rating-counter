@@ -45,13 +45,14 @@ export function useDashboardStats() {
         .filter(t => isActualTeam(t))
         .map(t => ({
           ...t,
-          member_count: members.filter(m => m.team_id === t.id).length,
+          member_count: members.filter(m => m.team_id === t.id && m.is_active !== false).length,
           rating_count: countFiveStarOrders(ratings.filter(r => r.team_id === t.id)),
         })).sort((a, b) => b.rating_count - a.rating_count);
       setTopTeams(teamStats);
 
-      // Member stats
-      const memberStats: MemberWithStats[] = members.map(m => ({
+      // Member stats (only active members in leaderboard)
+      const activeMembers = members.filter(m => m.is_active !== false);
+      const memberStats: MemberWithStats[] = activeMembers.map(m => ({
         ...m,
         rating_count: countFiveStarOrders(ratings.filter(r => r.member_id === m.id)),
       })).sort((a, b) => b.rating_count - a.rating_count);

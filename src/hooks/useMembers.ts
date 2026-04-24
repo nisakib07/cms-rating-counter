@@ -45,5 +45,11 @@ export function useMembers() {
     return { error: error?.message ?? null };
   };
 
-  return { members, loading, fetchMembers, createMember, updateMember, deleteMember };
+  const toggleMemberStatus = async (id: string, isActive: boolean) => {
+    const { error } = await supabase.from('members').update({ is_active: isActive }).eq('id', id);
+    if (!error) await fetchMembers();
+    return { error: error?.message ?? null };
+  };
+
+  return { members, loading, fetchMembers, createMember, updateMember, deleteMember, toggleMemberStatus };
 }

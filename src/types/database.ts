@@ -41,6 +41,7 @@ export interface Member {
   role: MemberRole;
   team_id: string;
   profile_image: string | null;
+  is_active: boolean;
   joined_at: string;
   created_at: string;
   updated_at: string;

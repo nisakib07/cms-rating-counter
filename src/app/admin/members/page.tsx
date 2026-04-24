@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, Pencil, Trash2, Search, Shield, ShieldCheck, Download, ExternalLink } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Shield, ShieldCheck, Download, ExternalLink, UserX, UserCheck } from 'lucide-react';
 import { useMembers } from '@/hooks/useMembers';
 import { useTeams } from '@/hooks/useTeams';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,13 +21,14 @@ const defaultForm: MemberFormData = { member_id: '', name: '', email: '', role: 
 
 export default function MembersPage() {
   const { isSuperAdmin, memberServiceLine } = useAuth();
-  const { members, loading, createMember, updateMember, deleteMember } = useMembers();
+  const { members, loading, createMember, updateMember, deleteMember, toggleMemberStatus } = useMembers();
   const { teams } = useTeams();
   const { showToast } = useToast();
   const [search, setSearch] = useState('');
   const [filterTeam, setFilterTeam] = useState('');
   const [filterLine, setFilterLine] = useState('');
   const [filterRole, setFilterRole] = useState('');
+  const [filterStatus, setFilterStatus] = useState('active');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Member | null>(null);
   const [form, setForm] = useState<MemberFormData>(defaultForm);
@@ -51,7 +52,8 @@ export default function MembersPage() {
     const matchTeam = !filterTeam || m.team_id === filterTeam;
     const matchLine = !filterLine || m.team?.service_line === filterLine;
     const matchRole = !filterRole || m.role === filterRole;
-    return matchSearch && matchTeam && matchLine && matchRole;
+    const matchStatus = !filterStatus || (filterStatus === 'active' ? m.is_active !== false : m.is_active === false);
+    return matchSearch && matchTeam && matchLine && matchRole && matchStatus;
   });
 
   const openCreate = () => { setEditing(null); setForm(defaultForm); setModalOpen(true); };
@@ -125,6 +127,7 @@ export default function MembersPage() {
         <Select value={filterLine} onChange={v => { setFilterLine(v); setPage(1); }} placeholder="All Service Lines" options={[{ value: 'CMS Hub', label: 'CMS Hub' }, { value: 'CMS Endgame', label: 'CMS Endgame' }]} />
         <Select value={filterTeam} onChange={v => { setFilterTeam(v); setPage(1); }} placeholder="All Teams" options={searchTeamOptions} />
         <Select value={filterRole} onChange={v => { setFilterRole(v); setPage(1); }} placeholder="All Roles" options={roleOptions} />
+        <Select value={filterStatus} onChange={v => { setFilterStatus(v); setPage(1); }} placeholder="All Status" options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]} />
       </div>
 
       <div className="glass rounded-2xl overflow-hidden">
@@ -138,17 +141,18 @@ export default function MembersPage() {
                 <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Role</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Access</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Team</th>
+                <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Status</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Joined</th>
                 <th className="text-right px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="px-5 py-12 text-center"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
+                <tr><td colSpan={9} className="px-5 py-12 text-center"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={8} className="px-5 py-12 text-center text-text-muted text-sm">No members found</td></tr>
+                <tr><td colSpan={9} className="px-5 py-12 text-center text-text-muted text-sm">No members found</td></tr>
               ) : filtered.slice((page - 1) * pageSize, page * pageSize).map(m => (
-                <tr key={m.id} className="border-b border-border/50 hover:bg-glass transition-colors">
+                <tr key={m.id} className={`border-b border-border/50 hover:bg-glass transition-colors ${m.is_active === false ? 'opacity-60' : ''}`}>
                   <td className="px-5 py-4 text-sm font-mono text-text-muted">{m.member_id || '—'}</td>
                   <td className="px-5 py-4">
                     <Link href={`/members/${m.id}`} className="flex items-center gap-3 group">
@@ -164,10 +168,28 @@ export default function MembersPage() {
                   <td className="px-5 py-4"><Badge variant="neutral">{m.role}</Badge></td>
                   <td className="px-5 py-4">{getRoleBadge(m) || <span className="text-xs text-text-muted">Member</span>}</td>
                   <td className="px-5 py-4"><Badge variant={m.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} customColor={m.team?.color}>{m.team?.name || '—'}</Badge></td>
+                  <td className="px-5 py-4">
+                    {m.is_active === false ? (
+                      <Badge variant="danger" size="sm">Inactive</Badge>
+                    ) : (
+                      <Badge variant="success" size="sm">Active</Badge>
+                    )}
+                  </td>
                   <td className="px-5 py-4 text-sm text-text-muted">{new Date(m.joined_at).toLocaleDateString()}</td>
                   <td className="px-5 py-4">
                     {(isSuperAdmin || memberServiceLine === m.team?.service_line) ? (
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={async () => {
+                            const { error } = await toggleMemberStatus(m.id, m.is_active === false);
+                            if (error) showToast(error, 'error');
+                            else showToast(m.is_active === false ? `${m.name} reactivated` : `${m.name} deactivated`, 'success');
+                          }}
+                          className={`p-2 rounded-lg transition-colors cursor-pointer ${m.is_active === false ? 'hover:bg-emerald-500/10 text-text-muted hover:text-emerald-400' : 'hover:bg-warning/10 text-text-muted hover:text-warning'}`}
+                          title={m.is_active === false ? 'Reactivate member' : 'Deactivate member'}
+                        >
+                          {m.is_active === false ? <UserCheck size={15} /> : <UserX size={15} />}
+                        </button>
                         <button onClick={() => openEdit(m)} className="p-2 rounded-lg hover:bg-glass-light text-text-muted hover:text-text-primary transition-colors cursor-pointer"><Pencil size={15} /></button>
                         <button onClick={() => setDeleteId(m.id)} className="p-2 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer"><Trash2 size={15} /></button>
                       </div>

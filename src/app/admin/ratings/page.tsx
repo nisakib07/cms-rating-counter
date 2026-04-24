@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { Plus, Pencil, Trash2, Search, Star, Image, ExternalLink, Calendar, Download, Check, Users, Info, Clock, User, FileEdit, CheckCircle, XCircle, Link2, Upload } from 'lucide-react';
 import { useRatings } from '@/hooks/useRatings';
 import { useTeams } from '@/hooks/useTeams';
@@ -291,9 +292,9 @@ export default function RatingsPage() {
   };
 
   const teamOptions = teams.filter(t => isActualTeam(t)).map(t => ({ value: t.id, label: `${t.name} (${t.service_line})` }));
-  // Only show members belonging to the selected team
+  // Only show active members belonging to the selected team
   const memberOptions = form.team_id
-    ? members.filter(m => m.team_id === form.team_id).map(m => ({ value: m.id, label: m.name }))
+    ? members.filter(m => m.team_id === form.team_id && m.is_active !== false).map(m => ({ value: m.id, label: m.name }))
     : [];
 
   return (
@@ -405,7 +406,7 @@ export default function RatingsPage() {
                         </div>
                       </td>
                       <td className="px-5 py-4 text-sm text-text-muted">{primary.client_name || '—'}</td>
-                      <td className="px-5 py-4"><span className="text-xs font-mono text-text-secondary px-2 py-1 rounded-md bg-white/[0.04]">{primary.profile_name || '—'}</span></td>
+                      <td className="px-5 py-4">{primary.profile_name ? <Link href={`/profiles/${encodeURIComponent(primary.profile_name)}`} className="text-xs font-mono text-primary-light hover:underline px-2 py-1 rounded-md bg-white/[0.04]">{primary.profile_name}</Link> : <span className="text-text-muted text-xs">—</span>}</td>
                       <td className="px-5 py-4 text-sm text-text-muted">{new Date(primary.date_received).toLocaleDateString()}</td>
                       <td className="px-5 py-4">
                         {primary.screenshot_url ? (
@@ -461,7 +462,7 @@ export default function RatingsPage() {
                         </div>
                       </td>
                       <td className="px-5 py-4 text-sm text-text-muted">{r.client_name || '—'}</td>
-                      <td className="px-5 py-4"><span className="text-xs font-mono text-text-secondary px-2 py-1 rounded-md bg-white/[0.04]">{r.profile_name || '—'}</span></td>
+                      <td className="px-5 py-4">{r.profile_name ? <Link href={`/profiles/${encodeURIComponent(r.profile_name)}`} className="text-xs font-mono text-primary-light hover:underline px-2 py-1 rounded-md bg-white/[0.04]">{r.profile_name}</Link> : <span className="text-text-muted text-xs">—</span>}</td>
                       <td className="px-5 py-4 text-sm text-text-muted">{new Date(r.date_received).toLocaleDateString()}</td>
                       <td className="px-5 py-4">
                         {r.screenshot_url ? (
@@ -522,14 +523,14 @@ export default function RatingsPage() {
                 <div className="flex items-center justify-center py-6 rounded-xl border border-dashed border-border bg-surface/50">
                   <span className="text-sm text-text-muted">Select a team first to view members</span>
                 </div>
-              ) : members.filter(m => m.team_id === form.team_id).length === 0 ? (
+              ) : members.filter(m => m.team_id === form.team_id && m.is_active !== false).length === 0 ? (
                 <div className="flex items-center justify-center py-6 rounded-xl border border-dashed border-border bg-surface/50">
-                  <span className="text-sm text-text-muted">No members found in this team</span>
+                  <span className="text-sm text-text-muted">No active members found in this team</span>
                 </div>
               ) : (
                 <div className="rounded-xl border border-border bg-surface/30 p-2 max-h-[220px] overflow-y-auto">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                    {members.filter(m => m.team_id === form.team_id).map(m => {
+                    {members.filter(m => m.team_id === form.team_id && m.is_active !== false).map(m => {
                       const isSelected = multiMemberIds.includes(m.id);
                       return (
                         <button
