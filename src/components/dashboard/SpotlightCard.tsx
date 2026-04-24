@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { Crown, Flame, Star, CalendarDays } from 'lucide-react';
 import Link from 'next/link';
 import type { MemberWithStats, Rating } from '@/types/database';
-import { toDriveDirectUrl, countFiveStarOrders } from '@/lib/utils';
+import { toDriveDirectUrl, countFiveStarOrders, getNickname } from '@/lib/utils';
 
 interface SpotlightCardProps {
   members: MemberWithStats[];
@@ -99,7 +99,7 @@ export default function SpotlightCard({ members, allRatings }: SpotlightCardProp
                   {spotlight.runnerUps.map((r, i) => (
                     <Link key={r.id} href={`/members/${r.id}`} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-all text-xs">
                       <span className="text-text-muted">{i === 0 ? '🥈' : '🥉'}</span>
-                      <span className="text-text-secondary font-medium">{r.name.split(' ')[0]}</span>
+                      <span className="text-text-secondary font-medium">{getNickname(r.name)}</span>
                       <span className="text-warning font-bold">{r.monthlyCount}</span>
                     </Link>
                   ))}

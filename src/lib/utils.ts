@@ -61,3 +61,13 @@ export const SERVICE_LINE_NAMES = ['CMS Hub', 'CMS Endgame'];
 export function isActualTeam(team: { name: string }): boolean {
   return !SERVICE_LINE_NAMES.some(sl => sl.toLowerCase() === team.name.toLowerCase());
 }
+
+// Get the "real" first name / nickname, skipping common prefixes like
+// Md, MD, Md., MD. (short for Mohammad) that aren't how people are called.
+export function getNickname(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length > 1 && /^(md|MD|Md)\.?$/i.test(parts[0])) {
+    return parts[1];
+  }
+  return parts[0];
+}

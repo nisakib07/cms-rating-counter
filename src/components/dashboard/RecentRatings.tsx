@@ -1,20 +1,32 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Star, Clock, ExternalLink, FileText, Quote, User, Hash, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Star, Clock, ExternalLink, FileText, Quote, User, Hash, ChevronLeft, ChevronRight, Link2 } from 'lucide-react';
 import type { Rating } from '@/types/database';
 import Badge from '@/components/ui/Badge';
-import { toDriveDirectUrl } from '@/lib/utils';
+import { toDriveDirectUrl, getNickname } from '@/lib/utils';
 import ScreenshotLightbox from '@/components/ui/ScreenshotLightbox';
+import type { MemberGroup } from '@/components/ui/ScreenshotLightbox';
+import StarRating from '@/components/ui/StarRating';
 
 interface RecentRatingsProps {
   ratings: Rating[];
 }
 
-function RatingCard({ rating, index, onOpenLightbox }: { rating: Rating; index: number; onOpenLightbox: () => void }) {
+// A grouped view of ratings sharing the same order_id
+interface GroupedRating {
+  key: string;
+  orderId: string | null;
+  primary: Rating;          // first rating (used for screenshot, review, etc.)
+  allRatings: Rating[];     // all ratings in the group (for lightbox)
+  members: { name: string; teamName: string; profileImage: string | null }[];
+  isShared: boolean;
+}
+
+function GroupedRatingCard({ group, index, onOpenLightbox }: { group: GroupedRating; index: number; onOpenLightbox: () => void }) {
   const [imgError, setImgError] = useState(false);
-  const screenshotSrc = rating.screenshot_url ? toDriveDirectUrl(rating.screenshot_url) : null;
-  const profileSrc = rating.member?.profile_image ? toDriveDirectUrl(rating.member.profile_image) : null;
+  const { primary, members, isShared } = group;
+  const screenshotSrc = primary.screenshot_url ? toDriveDirectUrl(primary.screenshot_url) : null;
 
   return (
     <div
@@ -40,22 +52,27 @@ function RatingCard({ rating, index, onOpenLightbox }: { rating: Rating; index: 
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent" />
 
         {/* Service line badge - top right */}
-        <div className="absolute top-3 right-3">
-          <Badge variant={rating.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} size="sm" customColor={rating.team?.color}>
-            {rating.team?.service_line === 'CMS Hub' ? 'Hub' : 'Endgame'}
+        <div className="absolute top-3 right-3 flex items-center gap-1.5">
+          {isShared && (
+            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 shadow-lg shadow-violet-500/40 border border-white/20">
+              <Link2 size={10} className="text-white" />
+              <span className="text-[10px] font-bold text-white tracking-wide uppercase">Collab</span>
+            </div>
+          )}
+          <Badge variant={primary.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} size="sm" customColor={primary.team?.color}>
+            {primary.team?.service_line === 'CMS Hub' ? 'Hub' : 'Endgame'}
           </Badge>
         </div>
 
         {/* Stars - bottom left over gradient */}
-        <div className="absolute bottom-3 left-3 flex items-center gap-1">
-          <Star size={14} className="text-warning drop-shadow-lg" fill="#f59e0b" />
-          <span className="text-xs font-bold text-warning drop-shadow-lg">{rating.rating_value}</span>
+        <div className="absolute bottom-3 left-3 flex items-center">
+          <StarRating rating={primary.rating_value} size={12} className="drop-shadow-lg" showText />
         </div>
 
         {/* External link on hover - bottom right */}
-        {rating.screenshot_url && (
+        {primary.screenshot_url && (
           <a
-            href={rating.screenshot_url}
+            href={primary.screenshot_url}
             target="_blank"
             rel="noopener noreferrer"
             className="absolute bottom-3 right-3 w-8 h-8 rounded-lg bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white hover:bg-black/60 transition-all opacity-0 group-hover:opacity-100"
@@ -69,50 +86,89 @@ function RatingCard({ rating, index, onOpenLightbox }: { rating: Rating; index: 
       {/* Card Body */}
       <div className="flex flex-col gap-3 p-4 flex-1">
         {/* Member info row */}
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center text-primary-light font-bold text-xs shrink-0 border border-primary/10 overflow-hidden">
-            {profileSrc ? (
-              <img
-                src={profileSrc}
-                alt={rating.member?.name || ''}
-                className="w-full h-full object-cover"
-                onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.textContent = rating.member?.name?.charAt(0) || '?'; }}
-              />
-            ) : (
-              <span>{rating.member?.name?.charAt(0) || '?'}</span>
-            )}
+        {isShared ? (
+          <div className="flex items-center gap-3">
+            {/* Avatar stack */}
+            <div className="flex items-center -space-x-2">
+              {members.map((m, idx) => {
+                const profileSrc = m.profileImage ? toDriveDirectUrl(m.profileImage) : null;
+                return (
+                  <div
+                    key={idx}
+                    className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center text-primary-light font-bold text-xs shrink-0 border-2 border-surface overflow-hidden"
+                    style={{ zIndex: members.length - idx }}
+                    title={m.name}
+                  >
+                    {profileSrc ? (
+                      <img
+                        src={profileSrc}
+                        alt={m.name}
+                        className="w-full h-full object-cover"
+                        onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.textContent = m.name.charAt(0); }}
+                      />
+                    ) : (
+                      <span>{m.name.charAt(0)}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-text-primary truncate">
+                {members.map(m => getNickname(m.name)).join(' & ')}
+              </p>
+              <p className="text-xs text-text-muted truncate">{members[0].teamName}</p>
+            </div>
+            <span className="text-[10px] text-text-muted whitespace-nowrap">
+              {new Date(primary.date_received).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </span>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-text-primary truncate">{rating.member?.name || 'Unknown'}</p>
-            <p className="text-xs text-text-muted truncate">{rating.team?.name}</p>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center text-primary-light font-bold text-xs shrink-0 border border-primary/10 overflow-hidden">
+              {members[0].profileImage ? (
+                <img
+                  src={toDriveDirectUrl(members[0].profileImage)}
+                  alt={members[0].name}
+                  className="w-full h-full object-cover"
+                  onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.textContent = members[0].name.charAt(0); }}
+                />
+              ) : (
+                <span>{members[0].name.charAt(0)}</span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-text-primary truncate">{members[0].name}</p>
+              <p className="text-xs text-text-muted truncate">{members[0].teamName}</p>
+            </div>
+            <span className="text-[10px] text-text-muted whitespace-nowrap">
+              {new Date(primary.date_received).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </span>
           </div>
-          <span className="text-[10px] text-text-muted whitespace-nowrap">
-            {new Date(rating.date_received).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-          </span>
-        </div>
+        )}
 
         {/* Review text */}
-        {rating.review_text && (
+        {primary.review_text && (
           <div className="relative pl-3 border-l-2 border-primary/20">
             <Quote size={10} className="absolute -left-[7px] -top-0.5 text-primary/40 bg-surface rounded-full p-[1px]" />
             <p className="text-xs text-text-secondary leading-relaxed line-clamp-3 italic">
-              &ldquo;{rating.review_text}&rdquo;
+              &ldquo;{primary.review_text}&rdquo;
             </p>
           </div>
         )}
 
         {/* Footer meta */}
         <div className="mt-auto flex items-center gap-3 pt-2 border-t border-white/[0.04]">
-          {rating.order_id && (
+          {primary.order_id && (
             <div className="flex items-center gap-1.5 text-[11px] text-text-muted">
               <Hash size={10} className="text-text-muted/60" />
-              <span className="font-mono">{rating.order_id}</span>
+              <span className="font-mono">{primary.order_id}</span>
             </div>
           )}
-          {rating.client_name && (
+          {primary.client_name && (
             <div className="flex items-center gap-1.5 text-[11px] text-text-muted ml-auto">
               <User size={10} className="text-text-muted/60" />
-              <span className="truncate max-w-[100px]">{rating.client_name}</span>
+              <span className="truncate max-w-[100px]">{primary.client_name}</span>
             </div>
           )}
         </div>
@@ -127,6 +183,59 @@ export default function RecentRatings({ ratings }: RecentRatingsProps) {
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
+  // Group ratings by order_id so shared projects appear as a single card
+  const groupedRatings: GroupedRating[] = useMemo(() => {
+    const orderMap = new Map<string, Rating[]>();
+    const standalone: Rating[] = [];
+
+    for (const r of ratings) {
+      if (r.order_id && r.order_id.trim()) {
+        const key = r.order_id.trim();
+        if (!orderMap.has(key)) orderMap.set(key, []);
+        orderMap.get(key)!.push(r);
+      } else {
+        standalone.push(r);
+      }
+    }
+
+    const groups: GroupedRating[] = [];
+
+    for (const [orderId, rats] of orderMap.entries()) {
+      groups.push({
+        key: `order-${orderId}`,
+        orderId,
+        primary: rats[0],
+        allRatings: rats,
+        members: rats.map(r => ({
+          name: r.member?.name || 'Unknown',
+          teamName: r.team?.name || '',
+          profileImage: r.member?.profile_image || null,
+        })),
+        isShared: rats.length > 1,
+      });
+    }
+
+    for (const r of standalone) {
+      groups.push({
+        key: r.id,
+        orderId: null,
+        primary: r,
+        allRatings: [r],
+        members: [{
+          name: r.member?.name || 'Unknown',
+          teamName: r.team?.name || '',
+          profileImage: r.member?.profile_image || null,
+        }],
+        isShared: false,
+      });
+    }
+
+    // Sort by most recent date
+    groups.sort((a, b) => b.primary.date_received.localeCompare(a.primary.date_received));
+
+    return groups;
+  }, [ratings]);
+
   const checkScroll = () => {
     if (!scrollRef.current) return;
     const el = scrollRef.current;
@@ -139,7 +248,7 @@ export default function RecentRatings({ ratings }: RecentRatingsProps) {
     const el = scrollRef.current;
     if (el) el.addEventListener('scroll', checkScroll);
     return () => { if (el) el.removeEventListener('scroll', checkScroll); };
-  }, [ratings.length]);
+  }, [groupedRatings.length]);
 
   const scroll = (dir: 'left' | 'right') => {
     if (!scrollRef.current) return;
@@ -157,8 +266,8 @@ export default function RecentRatings({ ratings }: RecentRatingsProps) {
             <Clock size={18} className="text-warning" />
           </div>
           Recent Ratings
-          {ratings.length > 0 && (
-            <span className="text-xs font-normal text-text-muted ml-1">({ratings.length})</span>
+          {groupedRatings.length > 0 && (
+            <span className="text-xs font-normal text-text-muted ml-1">({groupedRatings.length})</span>
           )}
         </h3>
 
@@ -182,14 +291,14 @@ export default function RecentRatings({ ratings }: RecentRatingsProps) {
       </div>
 
       {/* Horizontal Carousel */}
-      {ratings.length > 0 ? (
+      {groupedRatings.length > 0 ? (
         <div
           ref={scrollRef}
           className="flex gap-5 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1"
           style={{ scrollSnapType: 'x mandatory' }}
         >
-          {ratings.map((rating, i) => (
-            <RatingCard key={rating.id} rating={rating} index={i} onOpenLightbox={() => setLightboxIndex(i)} />
+          {groupedRatings.map((group, i) => (
+            <GroupedRatingCard key={group.key} group={group} index={i} onOpenLightbox={() => setLightboxIndex(i)} />
           ))}
         </div>
       ) : (
@@ -202,12 +311,19 @@ export default function RecentRatings({ ratings }: RecentRatingsProps) {
         </div>
       )}
 
-      {/* Lightbox */}
+      {/* Lightbox - pass the primary rating from each group + member groups */}
       {lightboxIndex !== null && (
         <ScreenshotLightbox
-          ratings={ratings}
+          ratings={groupedRatings.map(g => g.primary)}
           initialIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
+          memberGroups={groupedRatings.map(g => g.members.map(m => ({
+            name: m.name,
+            profileImage: m.profileImage,
+            teamName: m.teamName,
+            teamServiceLine: g.primary.team?.service_line || '',
+            teamColor: g.primary.team?.color,
+          } as MemberGroup)))}
         />
       )}
     </div>

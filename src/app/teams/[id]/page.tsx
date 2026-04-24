@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { supabase } from '@/lib/supabase';
 import { toDriveDirectUrl, countFiveStarOrders } from '@/lib/utils';
 import Badge from '@/components/ui/Badge';
+import StarRating from '@/components/ui/StarRating';
 import type { Team, Member, Rating } from '@/types/database';
 
 export default function TeamProfilePage() {
@@ -219,8 +220,7 @@ export default function TeamProfilePage() {
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-text-primary">{r.member?.name || 'Unknown'}</span>
                       <div className="flex items-center gap-0.5">
-                        <Star size={11} className="text-warning" fill="#f59e0b" />
-                        <span className="text-xs text-warning font-semibold">{r.rating_value}</span>
+                        <StarRating rating={r.rating_value} size={11} showText />
                       </div>
                     </div>
                     <div className="text-xs text-text-muted mt-0.5">{r.client_name || 'No client'} {r.order_id && `· ${r.order_id}`}</div>

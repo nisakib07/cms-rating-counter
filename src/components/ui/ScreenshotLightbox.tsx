@@ -2,24 +2,35 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronLeft, ChevronRight, ExternalLink, Star, User, Hash, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ExternalLink, Star, User, Hash, ZoomIn, ZoomOut, RotateCcw, Link2 } from 'lucide-react';
 import { toDriveDirectUrl } from '@/lib/utils';
 import type { Rating } from '@/types/database';
 import Badge from '@/components/ui/Badge';
+import StarRating from '@/components/ui/StarRating';
+
+export interface MemberGroup {
+  name: string;
+  profileImage: string | null;
+  teamName: string;
+  teamServiceLine: string;
+  teamColor?: string;
+}
 
 interface ScreenshotLightboxProps {
   ratings: Rating[];
   initialIndex: number;
   onClose: () => void;
+  memberGroups?: MemberGroup[][];  // per-index array of collaborating members
 }
 
-export default function ScreenshotLightbox({ ratings, initialIndex, onClose }: ScreenshotLightboxProps) {
+export default function ScreenshotLightbox({ ratings, initialIndex, onClose, memberGroups }: ScreenshotLightboxProps) {
   const [index, setIndex] = useState(initialIndex);
   const [zoom, setZoom] = useState(1);
   const [imgLoaded, setImgLoaded] = useState(false);
 
   const rating = ratings[index];
   const screenshotSrc = rating?.screenshot_url ? toDriveDirectUrl(rating.screenshot_url) : null;
+  const currentMembers = memberGroups?.[index];
 
   const goNext = useCallback(() => {
     setZoom(1);
@@ -121,29 +132,59 @@ export default function ScreenshotLightbox({ ratings, initialIndex, onClose }: S
         >
           {/* Rating stars */}
           <div className="flex items-center gap-1.5">
-            <Star size={20} className="text-warning" fill="#f59e0b" />
+            <StarRating rating={rating.rating_value} size={20} />
             <span className="text-white font-semibold text-lg">{rating.rating_value}</span>
             <span className="text-white/40 text-sm ml-2">{rating.rating_value}-star rating</span>
           </div>
 
           {/* Member info */}
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/40 to-secondary/40 flex items-center justify-center text-white font-bold shrink-0 overflow-hidden border border-white/10">
-              {rating.member?.profile_image ? (
-                <img src={toDriveDirectUrl(rating.member.profile_image)} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-lg">{rating.member?.name?.charAt(0) || '?'}</span>
-              )}
+          {currentMembers && currentMembers.length > 1 ? (
+            /* Shared order — show all collaborators */
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Link2 size={12} className="text-primary-light" />
+                <span className="text-[10px] font-semibold text-primary-light uppercase tracking-wider">Shared Order · {currentMembers.length} Members</span>
+              </div>
+              {currentMembers.map((m, idx) => (
+                <div key={idx} className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/40 to-secondary/40 flex items-center justify-center text-white font-bold shrink-0 overflow-hidden border border-white/10">
+                    {m.profileImage ? (
+                      <img src={toDriveDirectUrl(m.profileImage)} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-sm">{m.name.charAt(0)}</span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold text-sm">{m.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <Badge variant={m.teamServiceLine === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} size="sm" customColor={m.teamColor}>
+                        {m.teamName}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div>
-              <p className="text-white font-semibold">{rating.member?.name || 'Unknown'}</p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <Badge variant={rating.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} size="sm" customColor={rating.team?.color}>
-                  {rating.team?.name}
-                </Badge>
+          ) : (
+            /* Single member */
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/40 to-secondary/40 flex items-center justify-center text-white font-bold shrink-0 overflow-hidden border border-white/10">
+                {rating.member?.profile_image ? (
+                  <img src={toDriveDirectUrl(rating.member.profile_image)} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-lg">{rating.member?.name?.charAt(0) || '?'}</span>
+                )}
+              </div>
+              <div>
+                <p className="text-white font-semibold">{rating.member?.name || 'Unknown'}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <Badge variant={rating.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} size="sm" customColor={rating.team?.color}>
+                    {rating.team?.name}
+                  </Badge>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Review text */}
           {rating.review_text && (

@@ -203,7 +203,7 @@ body {
   animation: toast-progress 4s linear forwards;
 }
 
-/* ===== LIGHT THEME — COMPLETE OVERHAUL ===== */
+/* ===== LIGHT THEME — COMPLETE OVERHAUL ===== */ 
 [data-theme="light"] {
   --background: #f5f7fb;
   --foreground: #1a1f36;

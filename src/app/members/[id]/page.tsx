@@ -8,6 +8,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { supabase } from '@/lib/supabase';
 import { toDriveDirectUrl, countFiveStarOrders } from '@/lib/utils';
 import Badge from '@/components/ui/Badge';
+import StarRating from '@/components/ui/StarRating';
 import type { Member, Rating } from '@/types/database';
 
 export default function MemberProfilePage() {
@@ -172,8 +173,7 @@ export default function MemberProfilePage() {
               {ratings.map(r => (
                 <div key={r.id} className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-all">
                   <div className="flex items-center gap-0.5">
-                      <Star size={14} className="text-warning" fill="#f59e0b" />
-                      <span className="text-xs text-warning font-semibold ml-1">{r.rating_value}</span>
+                      <StarRating rating={r.rating_value} size={14} showText />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-text-primary">{r.client_name || 'No client name'}</div>

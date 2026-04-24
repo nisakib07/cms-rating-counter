@@ -14,8 +14,8 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Badge from '@/components/ui/Badge';
 import Pagination from '@/components/ui/Pagination';
 import type { Rating, RatingFormData, RatingAuditLog } from '@/types/database';
-import { toDriveDirectUrl, exportToCSV, isActualTeam } from '@/lib/utils';
-
+import { toDriveDirectUrl, exportToCSV, isActualTeam, getNickname } from '@/lib/utils';
+import StarRating from '@/components/ui/StarRating';
 const defaultForm: RatingFormData = { member_id: '', team_id: '', rating_value: 5, order_id: '', client_name: '', review_text: '', screenshot_url: '', date_received: new Date().toISOString().split('T')[0] };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -390,9 +390,8 @@ export default function RatingsPage() {
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <div className="flex items-center gap-1">
-                          <Star size={12} className="text-warning" fill="#f59e0b" />
-                          <span className="text-xs font-semibold text-warning">{primary.rating_value}</span>
+                        <div className="flex items-center">
+                          <StarRating rating={primary.rating_value} size={12} showText />
                         </div>
                       </td>
                       <td className="px-5 py-4 text-sm text-text-muted">{primary.client_name || '—'}</td>
@@ -412,7 +411,7 @@ export default function RatingsPage() {
                             {/* Per-member edit/delete */}
                             {group.ratings.map(r => (
                               <div key={r.id} className="flex items-center gap-1 text-xs">
-                                <span className="text-text-muted truncate max-w-[70px]">{r.member?.name?.split(' ')[0]}</span>
+                                <span className="text-text-muted truncate max-w-[70px]">{getNickname(r.member?.name || '')}</span>
                                 <button onClick={() => openEdit(r)} className="p-1.5 rounded-lg hover:bg-glass-light text-text-muted hover:text-text-primary transition-colors cursor-pointer" title={`Edit ${r.member?.name}'s entry`}><Pencil size={13} /></button>
                                 <button onClick={() => handleDeleteClick(r)} className="p-1.5 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer" title={`Delete ${r.member?.name}'s entry`}><Trash2 size={13} /></button>
                               </div>
@@ -443,9 +442,8 @@ export default function RatingsPage() {
                       </td>
                       <td className="px-5 py-4"><Badge variant={r.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} customColor={r.team?.color}>{r.team?.name || '—'}</Badge></td>
                       <td className="px-5 py-4">
-                        <div className="flex items-center gap-1">
-                          <Star size={12} className="text-warning" fill="#f59e0b" />
-                          <span className="text-xs font-semibold text-warning">{r.rating_value}</span>
+                        <div className="flex items-center">
+                          <StarRating rating={r.rating_value} size={12} showText />
                         </div>
                       </td>
                       <td className="px-5 py-4 text-sm text-text-muted">{r.client_name || '—'}</td>
