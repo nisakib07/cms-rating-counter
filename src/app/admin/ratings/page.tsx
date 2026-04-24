@@ -346,6 +346,7 @@ export default function RatingsPage() {
                 <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Team</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Rating</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Client</th>
+                <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Profile</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Date</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Screenshot</th>
                 <th className="text-right px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Actions</th>
@@ -353,9 +354,9 @@ export default function RatingsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="px-5 py-12 text-center"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
+                <tr><td colSpan={8} className="px-5 py-12 text-center"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
               ) : groupedRatings.length === 0 ? (
-                <tr><td colSpan={7} className="px-5 py-12 text-center text-text-muted text-sm">No ratings found</td></tr>
+                <tr><td colSpan={8} className="px-5 py-12 text-center text-text-muted text-sm">No ratings found</td></tr>
               ) : groupedRatings.slice((page - 1) * pageSize, page * pageSize).map(group => {
                 if (group.isGroup) {
                   // --- GROUPED ROW: Multiple collaborators on one order ---
@@ -404,6 +405,7 @@ export default function RatingsPage() {
                         </div>
                       </td>
                       <td className="px-5 py-4 text-sm text-text-muted">{primary.client_name || '—'}</td>
+                      <td className="px-5 py-4"><span className="text-xs font-mono text-text-secondary px-2 py-1 rounded-md bg-white/[0.04]">{primary.profile_name || '—'}</span></td>
                       <td className="px-5 py-4 text-sm text-text-muted">{new Date(primary.date_received).toLocaleDateString()}</td>
                       <td className="px-5 py-4">
                         {primary.screenshot_url ? (
@@ -459,6 +461,7 @@ export default function RatingsPage() {
                         </div>
                       </td>
                       <td className="px-5 py-4 text-sm text-text-muted">{r.client_name || '—'}</td>
+                      <td className="px-5 py-4"><span className="text-xs font-mono text-text-secondary px-2 py-1 rounded-md bg-white/[0.04]">{r.profile_name || '—'}</span></td>
                       <td className="px-5 py-4 text-sm text-text-muted">{new Date(r.date_received).toLocaleDateString()}</td>
                       <td className="px-5 py-4">
                         {r.screenshot_url ? (
