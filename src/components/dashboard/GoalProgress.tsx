@@ -1,16 +1,36 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Target, TrendingUp } from 'lucide-react';
 import type { Rating } from '@/types/database';
 import { countFiveStarOrders } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 
 interface GoalProgressProps {
   allRatings: Rating[];
   monthlyGoal?: number;
 }
 
-export default function GoalProgress({ allRatings, monthlyGoal = 100 }: GoalProgressProps) {
+export default function GoalProgress({ allRatings, monthlyGoal: propGoal }: GoalProgressProps) {
+  const [configGoal, setConfigGoal] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function fetchGoal() {
+      const { data } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'monthly_goal')
+        .single();
+      if (data?.value) {
+        const val = typeof data.value === 'object' && 'global' in data.value ? (data.value as any).global : Number(data.value);
+        setConfigGoal(val);
+      }
+    }
+    if (!propGoal) fetchGoal();
+  }, [propGoal]);
+
+  const monthlyGoal = propGoal || configGoal || 100;
+
   const progress = useMemo(() => {
     const now = new Date();
     const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;

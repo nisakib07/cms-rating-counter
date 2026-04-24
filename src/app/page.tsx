@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Star, TrendingUp, Zap, Shield, ArrowRight, ArrowUpRight, ArrowDownRight, Trophy, Menu, X, Plus } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Star, TrendingUp, Zap, Shield, ArrowRight, ArrowUpRight, ArrowDownRight, Trophy, Menu, X, Plus, Swords } from 'lucide-react';
 import Link from 'next/link';
 import StatsCard from '@/components/dashboard/StatsCard';
 import LeaderboardCard from '@/components/dashboard/LeaderboardCard';
@@ -14,11 +14,41 @@ import RecentRatings from '@/components/dashboard/RecentRatings';
 import GlobalSearch from '@/components/dashboard/GlobalSearch';
 import { StatsCardSkeleton, LeaderboardSkeleton, ChartSkeleton, RecentRatingsSkeleton } from '@/components/ui/Skeleton';
 import ThemeToggle from '@/components/ui/ThemeToggle';
+import NotificationBell from '@/components/ui/NotificationBell';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import ReportGenerator from '@/components/dashboard/ReportGenerator';
+import { countFiveStarOrders } from '@/lib/utils';
 
 export default function PublicDashboard() {
   const { totalRatings, cmsHubRatings, cmsEndgameRatings, topTeams, topMembers, recentRatings, allRatings, hubTeamIds, endgameTeamIds, loading } = useDashboardStats();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<'all' | 'month' | 'last_month' | '3months'>('all');
+  useKeyboardShortcuts();
+
+  // Date range filtered ratings
+  const filteredRatings = useMemo(() => {
+    if (dateRange === 'all') return allRatings;
+    const now = new Date();
+    let cutoff: Date;
+    if (dateRange === 'month') {
+      cutoff = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (dateRange === 'last_month') {
+      cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+      return allRatings.filter(r => {
+        const d = r.date_received;
+        return d >= cutoff.toISOString().split('T')[0] && d <= endOfLastMonth.toISOString().split('T')[0];
+      });
+    } else {
+      cutoff = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+    }
+    return allRatings.filter(r => r.date_received >= cutoff.toISOString().split('T')[0]);
+  }, [allRatings, dateRange]);
+
+  const filteredTotal = countFiveStarOrders(filteredRatings);
+  const filteredHub = countFiveStarOrders(filteredRatings.filter(r => hubTeamIds.includes(r.team_id)));
+  const filteredEndgame = countFiveStarOrders(filteredRatings.filter(r => endgameTeamIds.includes(r.team_id)));
 
   // Calculate month-over-month change
   const now = new Date();
@@ -56,7 +86,13 @@ export default function PublicDashboard() {
                 <Trophy size={14} />
                 Leaderboard
               </Link>
+              <Link href="/compare" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.1] transition-all duration-300 btn-press">
+                <Swords size={14} />
+                Compare
+              </Link>
+              <ReportGenerator allRatings={allRatings} topMembers={topMembers} topTeams={topTeams} totalRatings={totalRatings} cmsHubRatings={cmsHubRatings} cmsEndgameRatings={cmsEndgameRatings} />
               <ThemeToggle />
+              <NotificationBell />
               <Link href="/submit" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white bg-primary hover:bg-primary-hover border border-primary-light/20 transition-all duration-300 shadow-lg shadow-primary/25 btn-press">
                 <Star size={14} fill="currentColor" />
                 Submit Rating
@@ -142,21 +178,39 @@ export default function PublicDashboard() {
           </div>
         ) : (
           <div className="flex flex-col gap-8">
+            {/* Date Range Filter */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {([
+                { key: 'all', label: 'All Time' },
+                { key: 'month', label: 'This Month' },
+                { key: 'last_month', label: 'Last Month' },
+                { key: '3months', label: 'Last 3 Months' },
+              ] as const).map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => setDateRange(opt.key)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${dateRange === opt.key ? 'bg-primary/20 text-primary-light border border-primary/30' : 'bg-white/[0.03] text-text-muted border border-white/[0.06] hover:bg-white/[0.06] hover:text-text-secondary'}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
             {/* Stats Row */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               <StatsCard
                 icon={<Star size={24} className="text-white" fill="white" />}
                 label="Total Ratings"
-                value={totalRatings}
+                value={dateRange === 'all' ? totalRatings : filteredTotal}
                 color="from-primary to-secondary"
                 glowClass="glow-primary"
                 delay={0}
-                trend={changePercent !== 0 ? { value: changePercent, label: 'vs last month' } : undefined}
+                trend={dateRange === 'all' && changePercent !== 0 ? { value: changePercent, label: 'vs last month' } : undefined}
               />
               <StatsCard
                 icon={<TrendingUp size={24} className="text-white" />}
                 label="CMS Hub"
-                value={cmsHubRatings}
+                value={dateRange === 'all' ? cmsHubRatings : filteredHub}
                 color="from-cms-hub to-emerald-400"
                 glowClass="glow-hub"
                 delay={150}
@@ -164,7 +218,7 @@ export default function PublicDashboard() {
               <StatsCard
                 icon={<Zap size={24} className="text-white" />}
                 label="CMS Endgame"
-                value={cmsEndgameRatings}
+                value={dateRange === 'all' ? cmsEndgameRatings : filteredEndgame}
                 color="from-cms-endgame to-blue-400"
                 glowClass="glow-endgame"
                 delay={300}

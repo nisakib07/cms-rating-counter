@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Pencil, Trash2, Search, Star, Image, ExternalLink, Calendar, Download, Check, Users, Info, Clock, User, FileEdit, CheckCircle, XCircle, Link2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Star, Image, ExternalLink, Calendar, Download, Check, Users, Info, Clock, User, FileEdit, CheckCircle, XCircle, Link2, Upload } from 'lucide-react';
 import { useRatings } from '@/hooks/useRatings';
 import { useTeams } from '@/hooks/useTeams';
 import { useMembers } from '@/hooks/useMembers';
@@ -16,6 +16,7 @@ import Pagination from '@/components/ui/Pagination';
 import type { Rating, RatingFormData, RatingAuditLog } from '@/types/database';
 import { toDriveDirectUrl, exportToCSV, isActualTeam, getNickname } from '@/lib/utils';
 import StarRating from '@/components/ui/StarRating';
+import BulkImport from './BulkImport';
 const defaultForm: RatingFormData = { member_id: '', team_id: '', rating_value: 5, order_id: '', client_name: '', review_text: '', screenshot_url: '', date_received: new Date().toISOString().split('T')[0] };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -67,6 +68,7 @@ export default function RatingsPage() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
 
   // Point 2: Auto-fill state
   const [autoFilled, setAutoFilled] = useState(false);
@@ -299,6 +301,10 @@ export default function RatingsPage() {
           <p className="text-sm text-text-muted mt-1">Manage Fiverr ratings</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setBulkImportOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium bg-white/[0.04] text-text-secondary border border-white/[0.06] hover:bg-white/[0.08] transition-all cursor-pointer"
+          ><Upload size={14} /> Import CSV</button>
           <button
             onClick={() => exportToCSV(filtered.map(r => ({ Member: r.member?.name || '', Team: r.team?.name || '', Rating: r.rating_value, Client: r.client_name || '', Order_ID: r.order_id || '', Date: r.date_received, Review: r.review_text || '' })), 'ratings')}
             className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium bg-white/[0.04] text-text-secondary border border-white/[0.06] hover:bg-white/[0.08] transition-all cursor-pointer"
@@ -738,6 +744,15 @@ export default function RatingsPage() {
           </div>
         )}
       </Modal>
+
+      {/* Bulk Import Modal */}
+      <BulkImport
+        isOpen={bulkImportOpen}
+        onClose={() => setBulkImportOpen(false)}
+        onComplete={() => { setBulkImportOpen(false); }}
+        members={members.map(m => ({ id: m.id, name: m.name, team_id: m.team_id }))}
+        teams={teams.map(t => ({ id: t.id, name: t.name }))}
+      />
     </div>
   );
 }

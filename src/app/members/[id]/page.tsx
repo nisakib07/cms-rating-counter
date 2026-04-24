@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Star, ArrowLeft, Users, Calendar, TrendingUp } from 'lucide-react';
+import { Star, ArrowLeft, Calendar, TrendingUp, Flame, Award } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/lib/supabase';
 import { toDriveDirectUrl, countFiveStarOrders } from '@/lib/utils';
 import Badge from '@/components/ui/Badge';
 import StarRating from '@/components/ui/StarRating';
+import RatingHeatmap from '@/components/dashboard/RatingHeatmap';
+import { getUnlockedAchievements, getNextAchievement, getWeeklyStreak } from '@/lib/achievements';
 import type { Member, Rating } from '@/types/database';
 
 export default function MemberProfilePage() {
@@ -58,7 +60,11 @@ export default function MemberProfilePage() {
     );
   }
 
+  const fiveStarCount = countFiveStarOrders(ratings);
   const avgRating = ratings.length > 0 ? (ratings.reduce((sum, r) => sum + r.rating_value, 0) / ratings.length).toFixed(1) : '0';
+  const streak = getWeeklyStreak(ratings);
+  const achievements = getUnlockedAchievements(fiveStarCount);
+  const nextAchievement = getNextAchievement(fiveStarCount);
 
   // Build mini-chart data (last 6 months)
   const chartMonths: { label: string; key: string; count: number }[] = [];
@@ -123,15 +129,67 @@ export default function MemberProfilePage() {
             </div>
             <div className="flex gap-6 text-center shrink-0">
               <div>
-                <div className="text-3xl font-extrabold text-primary-light">{countFiveStarOrders(ratings)}</div>
+                <div className="text-3xl font-extrabold text-primary-light">{fiveStarCount}</div>
                 <div className="text-xs text-text-muted uppercase tracking-wider">Five Stars</div>
               </div>
               <div>
                 <div className="text-3xl font-extrabold text-warning">{avgRating}</div>
                 <div className="text-xs text-text-muted uppercase tracking-wider">Avg ⭐</div>
               </div>
+              {streak > 0 && (
+                <div>
+                  <div className="text-3xl font-extrabold text-orange-400 flex items-center gap-1">
+                    {streak}<Flame size={20} className="text-orange-400" />
+                  </div>
+                  <div className="text-xs text-text-muted uppercase tracking-wider">Week Streak</div>
+                </div>
+              )}
             </div>
           </div>
+        </div>
+
+        {/* Achievements */}
+        {achievements.length > 0 && (
+          <div className="glass rounded-2xl p-6 mb-8 animate-fade-in">
+            <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
+              <Award size={16} className="text-warning" />
+              Achievements
+              <span className="text-text-muted font-normal">({achievements.length})</span>
+            </h3>
+            <div className="flex flex-wrap gap-3">
+              {achievements.map(a => (
+                <div
+                  key={a.id}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r ${a.color} bg-opacity-10 border border-white/10`}
+                  style={{ background: `linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))` }}
+                  title={a.description}
+                >
+                  <span className="text-lg">{a.emoji}</span>
+                  <div>
+                    <div className="text-xs font-semibold text-text-primary">{a.label}</div>
+                    <div className="text-[9px] text-text-muted">{a.description}</div>
+                  </div>
+                </div>
+              ))}
+              {nextAchievement && (
+                <div
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-white/10 opacity-50"
+                  title={`${nextAchievement.threshold - fiveStarCount} more to unlock`}
+                >
+                  <span className="text-lg grayscale">🔒</span>
+                  <div>
+                    <div className="text-xs font-semibold text-text-muted">{nextAchievement.label}</div>
+                    <div className="text-[9px] text-text-muted">{nextAchievement.threshold - fiveStarCount} more to go</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Heatmap */}
+        <div className="mb-8">
+          <RatingHeatmap ratings={ratings} />
         </div>
 
         {/* Rating History Chart */}
@@ -166,7 +224,7 @@ export default function MemberProfilePage() {
             <div className="w-9 h-9 rounded-xl bg-warning/15 flex items-center justify-center">
               <Star size={18} className="text-warning" />
             </div>
-            All Ratings ({countFiveStarOrders(ratings)} five stars)
+            All Ratings ({fiveStarCount} five stars)
           </h3>
           {ratings.length > 0 ? (
             <div className="flex flex-col gap-3">

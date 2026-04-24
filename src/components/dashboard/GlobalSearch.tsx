@@ -51,6 +51,7 @@ export default function GlobalSearch() {
           onFocus={() => setOpen(true)}
           placeholder="Search members & teams..."
           className="w-44 sm:w-56 pl-9 pr-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-text-primary placeholder:text-text-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all"
+          data-global-search
         />
       </div>
 

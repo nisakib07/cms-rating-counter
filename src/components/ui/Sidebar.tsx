@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, UserCircle, Star, LogOut, ShieldCheck, Shield, Menu, X, Key, ClipboardCheck } from 'lucide-react';
+import { LayoutDashboard, Users, UserCircle, Star, LogOut, ShieldCheck, Shield, Menu, X, Key, ClipboardCheck, FileText, Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
 
@@ -12,6 +12,11 @@ const navItems = [
   { href: '/admin/members', label: 'Members', icon: UserCircle },
   { href: '/admin/ratings', label: 'Ratings', icon: Star },
   { href: '/admin/approvals', label: 'Approvals', icon: ClipboardCheck },
+];
+
+const superAdminNavItems = [
+  { href: '/admin/audit', label: 'Audit Log', icon: FileText },
+  { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
 export default function Sidebar() {
@@ -94,6 +99,29 @@ export default function Sidebar() {
               </Link>
             );
           })}
+          {isSuperAdmin && (
+            <>
+              <div className="border-t border-border my-2" />
+              <span className="px-3 text-[9px] text-text-muted uppercase tracking-widest font-bold">Super Admin</span>
+              {superAdminNavItems.map((item) => {
+                const isActive = pathname === item.href || pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-primary/15 text-primary-light border border-primary/20'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-glass-light'
+                    }`}
+                  >
+                    <item.icon size={18} />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </>
+          )}
         </nav>
 
         {/* User info */}

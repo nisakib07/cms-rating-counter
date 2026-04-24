@@ -8,6 +8,7 @@ import { toDriveDirectUrl, getNickname } from '@/lib/utils';
 import ScreenshotLightbox from '@/components/ui/ScreenshotLightbox';
 import type { MemberGroup } from '@/components/ui/ScreenshotLightbox';
 import StarRating from '@/components/ui/StarRating';
+import CopyOrderId from '@/components/ui/CopyOrderId';
 
 interface RecentRatingsProps {
   ratings: Rating[];
@@ -163,6 +164,7 @@ function GroupedRatingCard({ group, index, onOpenLightbox }: { group: GroupedRat
             <div className="flex items-center gap-1.5 text-[11px] text-text-muted">
               <Hash size={10} className="text-text-muted/60" />
               <span className="font-mono">{primary.order_id}</span>
+              <CopyOrderId orderId={primary.order_id} />
             </div>
           )}
           {primary.client_name && (

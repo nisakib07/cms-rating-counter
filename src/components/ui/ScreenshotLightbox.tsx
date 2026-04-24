@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronLeft, ChevronRight, ExternalLink, Star, User, Hash, ZoomIn, ZoomOut, RotateCcw, Link2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ExternalLink, Star, User, Hash, ZoomIn, ZoomOut, RotateCcw, Link2, Play, Pause } from 'lucide-react';
 import { toDriveDirectUrl } from '@/lib/utils';
 import type { Rating } from '@/types/database';
 import Badge from '@/components/ui/Badge';
 import StarRating from '@/components/ui/StarRating';
+import CopyOrderId from '@/components/ui/CopyOrderId';
 
 export interface MemberGroup {
   name: string;
@@ -27,6 +28,11 @@ export default function ScreenshotLightbox({ ratings, initialIndex, onClose, mem
   const [index, setIndex] = useState(initialIndex);
   const [zoom, setZoom] = useState(1);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [slideshow, setSlideshow] = useState(false);
+  const slideshowRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const rating = ratings[index];
   const screenshotSrc = rating?.screenshot_url ? toDriveDirectUrl(rating.screenshot_url) : null;
@@ -34,12 +40,14 @@ export default function ScreenshotLightbox({ ratings, initialIndex, onClose, mem
 
   const goNext = useCallback(() => {
     setZoom(1);
+    setPan({ x: 0, y: 0 });
     setImgLoaded(false);
     setIndex(i => (i + 1) % ratings.length);
   }, [ratings.length]);
 
   const goPrev = useCallback(() => {
     setZoom(1);
+    setPan({ x: 0, y: 0 });
     setImgLoaded(false);
     setIndex(i => (i - 1 + ratings.length) % ratings.length);
   }, [ratings.length]);
@@ -63,6 +71,28 @@ export default function ScreenshotLightbox({ ratings, initialIndex, onClose, mem
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
+
+  // Slideshow timer
+  useEffect(() => {
+    if (slideshow && ratings.length > 1) {
+      slideshowRef.current = setInterval(goNext, 5000);
+    }
+    return () => { if (slideshowRef.current) clearInterval(slideshowRef.current); };
+  }, [slideshow, goNext, ratings.length]);
+
+  // Pan/drag handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (zoom <= 1) return;
+    setDragging(true);
+    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!dragging) return;
+    setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+  };
+
+  const handleMouseUp = () => setDragging(false);
 
   if (!rating) return null;
 
@@ -111,10 +141,14 @@ export default function ScreenshotLightbox({ ratings, initialIndex, onClose, mem
               <img
                 src={screenshotSrc}
                 alt="Rating screenshot"
-                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl transition-transform duration-300 cursor-zoom-in select-none"
-                style={{ transform: `scale(${zoom})`, opacity: imgLoaded ? 1 : 0 }}
+                className={`max-w-full max-h-full object-contain rounded-xl shadow-2xl transition-transform duration-300 select-none ${zoom > 1 ? 'cursor-grab' : 'cursor-zoom-in'} ${dragging ? '!cursor-grabbing' : ''}`}
+                style={{ transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`, opacity: imgLoaded ? 1 : 0 }}
                 onLoad={() => setImgLoaded(true)}
-                onClick={e => { e.stopPropagation(); setZoom(z => z === 1 ? 2 : 1); }}
+                onClick={e => { e.stopPropagation(); if (!dragging) { setZoom(z => z === 1 ? 2 : 1); setPan({ x: 0, y: 0 }); } }}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
                 draggable={false}
               />
             </div>
@@ -199,6 +233,7 @@ export default function ScreenshotLightbox({ ratings, initialIndex, onClose, mem
               <div className="flex items-center gap-2 text-white/60">
                 <Hash size={14} className="text-white/40" />
                 <span className="font-mono">{rating.order_id}</span>
+                <CopyOrderId orderId={rating.order_id} />
               </div>
             )}
             {rating.client_name && (
@@ -225,7 +260,7 @@ export default function ScreenshotLightbox({ ratings, initialIndex, onClose, mem
             </a>
           )}
 
-          {/* Zoom controls */}
+          {/* Zoom + slideshow controls */}
           <div className="flex items-center justify-center gap-2 pt-2 border-t border-white/[0.06]">
             <button onClick={() => setZoom(z => Math.max(0.5, z - 0.25))} className="w-8 h-8 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center text-white/60 hover:text-white transition-all">
               <ZoomOut size={14} />
@@ -234,9 +269,18 @@ export default function ScreenshotLightbox({ ratings, initialIndex, onClose, mem
             <button onClick={() => setZoom(z => Math.min(3, z + 0.25))} className="w-8 h-8 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center text-white/60 hover:text-white transition-all">
               <ZoomIn size={14} />
             </button>
-            <button onClick={() => setZoom(1)} className="w-8 h-8 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center text-white/60 hover:text-white transition-all ml-1">
+            <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} className="w-8 h-8 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center text-white/60 hover:text-white transition-all ml-1">
               <RotateCcw size={14} />
             </button>
+            {ratings.length > 1 && (
+              <button
+                onClick={() => setSlideshow(s => !s)}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ml-1 ${slideshow ? 'bg-primary/30 text-primary-light' : 'bg-white/[0.06] hover:bg-white/[0.12] text-white/60 hover:text-white'}`}
+                title={slideshow ? 'Pause slideshow' : 'Start slideshow'}
+              >
+                {slideshow ? <Pause size={14} /> : <Play size={14} />}
+              </button>
+            )}
           </div>
 
           {/* Pagination indicator */}
