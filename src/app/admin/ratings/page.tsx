@@ -28,6 +28,7 @@ const FIELD_LABELS: Record<string, string> = {
   client_name: 'Client Name',
   review_text: 'Review Text',
   screenshot_url: 'Screenshot URL',
+  profile_name: 'Fiverr Profile',
   date_received: 'Date Received',
 };
 
@@ -420,6 +421,9 @@ export default function RatingsPage() {
                             {group.ratings.map(r => (
                               <div key={r.id} className="flex items-center gap-1 text-xs">
                                 <span className="text-text-muted truncate max-w-[70px]">{getNickname(r.member?.name || '')}</span>
+                                {isSuperAdmin && (
+                                  <button onClick={async () => { setInfoRating(r); setAuditLoading(true); const logs = await fetchAuditLog(r.id); setAuditLogs(logs); setAuditLoading(false); }} className="p-1.5 rounded-lg hover:bg-primary/10 text-text-muted hover:text-primary transition-colors cursor-pointer" title={`Info for ${r.member?.name}`}><Info size={13} /></button>
+                                )}
                                 <button onClick={() => openEdit(r)} className="p-1.5 rounded-lg hover:bg-glass-light text-text-muted hover:text-text-primary transition-colors cursor-pointer" title={`Edit ${r.member?.name}'s entry`}><Pencil size={13} /></button>
                                 <button onClick={() => handleDeleteClick(r)} className="p-1.5 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer" title={`Delete ${r.member?.name}'s entry`}><Trash2 size={13} /></button>
                               </div>

@@ -56,11 +56,12 @@ export function useRatings() {
     if (!payload.client_name) payload.client_name = null;
     if (!payload.review_text) payload.review_text = null;
     if (!payload.screenshot_url) payload.screenshot_url = null;
+    if (!payload.profile_name) payload.profile_name = null;
     const { error } = await supabase.from('ratings').update(payload).eq('id', id);
     if (!error && userEmail && oldRating) {
       // Compute diff of changed fields
       const changes: Record<string, { old: unknown; new: unknown }> = {};
-      const fields: (keyof RatingFormData)[] = ['member_id', 'team_id', 'rating_value', 'order_id', 'client_name', 'review_text', 'screenshot_url', 'date_received'];
+      const fields: (keyof RatingFormData)[] = ['member_id', 'team_id', 'rating_value', 'order_id', 'client_name', 'review_text', 'screenshot_url', 'profile_name', 'date_received'];
       for (const field of fields) {
         const oldVal = oldRating[field] ?? '';
         const newVal = formData[field] ?? '';
