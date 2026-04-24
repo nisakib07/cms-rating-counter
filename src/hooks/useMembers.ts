@@ -12,7 +12,7 @@ export function useMembers() {
     setLoading(true);
     const { data, error } = await supabase
       .from('members')
-      .select('*, team:teams(*)')
+      .select('*, team:teams(*), ratings(id)')
       .order('name', { ascending: true });
     if (!error && data) setMembers(data);
     setLoading(false);

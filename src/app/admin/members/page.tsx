@@ -191,7 +191,9 @@ export default function MembersPage() {
                           {m.is_active === false ? <UserCheck size={15} /> : <UserX size={15} />}
                         </button>
                         <button onClick={() => openEdit(m)} className="p-2 rounded-lg hover:bg-glass-light text-text-muted hover:text-text-primary transition-colors cursor-pointer"><Pencil size={15} /></button>
-                        <button onClick={() => setDeleteId(m.id)} className="p-2 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer"><Trash2 size={15} /></button>
+                        {(!m.ratings || m.ratings.length === 0) && (
+                          <button onClick={() => setDeleteId(m.id)} className="p-2 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer"><Trash2 size={15} /></button>
+                        )}
                       </div>
                     ) : (
                       <div className="flex items-center justify-end gap-1 px-4">

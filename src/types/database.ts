@@ -47,6 +47,7 @@ export interface Member {
   updated_at: string;
   // Joined fields
   team?: Team;
+  ratings?: { id: string }[];
 }
 
 export interface Rating {
