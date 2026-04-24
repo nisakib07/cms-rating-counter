@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings, Target, Save, Globe, Plus, X, Trash2 } from 'lucide-react';
+import { Settings, Target, Save, Globe, Plus, X, Trash2, Pencil } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
@@ -20,6 +20,8 @@ export default function SettingsPage() {
   const [newProfile, setNewProfile] = useState('');
   const [editedProfiles, setEditedProfiles] = useState<string[]>([]);
   const [profilesDirty, setProfilesDirty] = useState(false);
+  const [editingProfile, setEditingProfile] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState('');
 
   useEffect(() => {
     async function fetch() {
@@ -171,8 +173,52 @@ export default function SettingsPage() {
             <div className="max-h-[300px] overflow-y-auto rounded-xl border border-white/[0.06] bg-surface/30">
               <div className="flex flex-wrap gap-1.5 p-3">
                 {editedProfiles.map(p => (
-                  <div key={p} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06] text-sm text-text-secondary hover:border-red-400/30 group transition-all">
-                    <span className="font-mono text-xs">{p}</span>
+                  <div key={p} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06] text-sm text-text-secondary hover:border-white/[0.12] group transition-all">
+                    {editingProfile === p ? (
+                      <input
+                        autoFocus
+                        value={editingValue}
+                        onChange={e => setEditingValue(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const newName = editingValue.trim().toLowerCase();
+                            if (newName && newName !== p && !editedProfiles.includes(newName)) {
+                              setEditedProfiles(editedProfiles.map(x => x === p ? newName : x).sort());
+                              setProfilesDirty(true);
+                            }
+                            setEditingProfile(null);
+                          } else if (e.key === 'Escape') {
+                            setEditingProfile(null);
+                          }
+                        }}
+                        onBlur={() => {
+                          const newName = editingValue.trim().toLowerCase();
+                          if (newName && newName !== p && !editedProfiles.includes(newName)) {
+                            setEditedProfiles(editedProfiles.map(x => x === p ? newName : x).sort());
+                            setProfilesDirty(true);
+                          }
+                          setEditingProfile(null);
+                        }}
+                        className="w-28 px-1 py-0 bg-transparent border-b border-primary text-text-primary text-xs font-mono focus:outline-none"
+                      />
+                    ) : (
+                      <>
+                        <span
+                          className="font-mono text-xs cursor-pointer hover:text-primary-light transition-colors"
+                          onClick={() => { setEditingProfile(p); setEditingValue(p); }}
+                          title="Click to rename"
+                        >
+                          {p}
+                        </span>
+                        <button
+                          onClick={() => { setEditingProfile(p); setEditingValue(p); }}
+                          className="w-4 h-4 rounded flex items-center justify-center text-text-muted opacity-0 group-hover:opacity-100 hover:text-primary-light transition-all cursor-pointer"
+                        >
+                          <Pencil size={8} />
+                        </button>
+                      </>
+                    )}
                     <button
                       onClick={() => handleRemoveProfile(p)}
                       className="w-4 h-4 rounded flex items-center justify-center text-text-muted opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all cursor-pointer"
