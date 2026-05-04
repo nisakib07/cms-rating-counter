@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Star, TrendingUp, Zap, Shield, ArrowRight, ArrowUpRight, ArrowDownRight, Trophy, Menu, X, Plus, Swords } from 'lucide-react';
+import { Star, TrendingUp, Zap, Shield, ArrowRight, ArrowUpRight, ArrowDownRight, Trophy, Menu, X, Plus, Swords, CalendarDays } from 'lucide-react';
 import Link from 'next/link';
 import StatsCard from '@/components/dashboard/StatsCard';
 import LeaderboardCard from '@/components/dashboard/LeaderboardCard';
@@ -23,42 +23,52 @@ import { countFiveStarOrders } from '@/lib/utils';
 export default function PublicDashboard() {
   const { totalRatings, cmsHubRatings, cmsEndgameRatings, topTeams, topMembers, recentRatings, allRatings, hubTeamIds, endgameTeamIds, loading } = useDashboardStats();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [dateRange, setDateRange] = useState<'all' | 'month' | 'last_month' | '3months'>('all');
   useKeyboardShortcuts();
 
-  // Date range filtered ratings
+  // Current month key as default (e.g. "2026-05")
+  const now = new Date();
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthKey);
+
+  // Build list of available months from allRatings, sorted descending
+  const availableMonths = useMemo(() => {
+    const monthSet = new Set<string>();
+    allRatings.forEach(r => {
+      const key = r.date_received.substring(0, 7); // "YYYY-MM"
+      monthSet.add(key);
+    });
+    // Ensure the current month is always in the list
+    monthSet.add(currentMonthKey);
+    return Array.from(monthSet).sort((a, b) => b.localeCompare(a));
+  }, [allRatings, currentMonthKey]);
+
+  // Format month key to readable label (e.g. "May 2026")
+  const formatMonthLabel = (key: string) => {
+    const [year, month] = key.split('-');
+    const date = new Date(Number(year), Number(month) - 1);
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
+  // Filter ratings by selected month (or all)
   const filteredRatings = useMemo(() => {
-    if (dateRange === 'all') return allRatings;
-    const now = new Date();
-    let cutoff: Date;
-    if (dateRange === 'month') {
-      cutoff = new Date(now.getFullYear(), now.getMonth(), 1);
-    } else if (dateRange === 'last_month') {
-      cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-      return allRatings.filter(r => {
-        const d = r.date_received;
-        return d >= cutoff.toISOString().split('T')[0] && d <= endOfLastMonth.toISOString().split('T')[0];
-      });
-    } else {
-      cutoff = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-    }
-    return allRatings.filter(r => r.date_received >= cutoff.toISOString().split('T')[0]);
-  }, [allRatings, dateRange]);
+    if (selectedMonth === 'all') return allRatings;
+    return allRatings.filter(r => r.date_received.startsWith(selectedMonth));
+  }, [allRatings, selectedMonth]);
 
   const filteredTotal = countFiveStarOrders(filteredRatings);
   const filteredHub = countFiveStarOrders(filteredRatings.filter(r => hubTeamIds.includes(r.team_id)));
   const filteredEndgame = countFiveStarOrders(filteredRatings.filter(r => endgameTeamIds.includes(r.team_id)));
 
   // Calculate month-over-month change
-  const now = new Date();
-  const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const lastMonthKey = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
+  // For "all time": compare current month vs last month
+  // For a specific month: compare that month vs its previous month
+  const trendBaseKey = selectedMonth === 'all' ? currentMonthKey : selectedMonth;
+  const prevMonthDate = new Date(Number(trendBaseKey.split('-')[0]), Number(trendBaseKey.split('-')[1]) - 2, 1);
+  const prevMonthKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
 
-  const thisMonthCount = allRatings.filter(r => r.date_received.startsWith(thisMonthKey)).length;
-  const lastMonthCount = allRatings.filter(r => r.date_received.startsWith(lastMonthKey)).length;
-  const changePercent = lastMonthCount > 0 ? Math.round(((thisMonthCount - lastMonthCount) / lastMonthCount) * 100) : (thisMonthCount > 0 ? 100 : 0);
+  const trendCurrentCount = allRatings.filter(r => r.date_received.startsWith(trendBaseKey)).length;
+  const prevMonthCount = allRatings.filter(r => r.date_received.startsWith(prevMonthKey)).length;
+  const changePercent = prevMonthCount > 0 ? Math.round(((trendCurrentCount - prevMonthCount) / prevMonthCount) * 100) : (trendCurrentCount > 0 ? 100 : 0);
 
   return (
     <div className="min-h-screen relative">
@@ -178,22 +188,31 @@ export default function PublicDashboard() {
           </div>
         ) : (
           <div className="flex flex-col gap-8">
-            {/* Date Range Filter */}
-            <div className="flex items-center gap-2 flex-wrap">
-              {([
-                { key: 'all', label: 'All Time' },
-                { key: 'month', label: 'This Month' },
-                { key: 'last_month', label: 'Last Month' },
-                { key: '3months', label: 'Last 3 Months' },
-              ] as const).map(opt => (
-                <button
-                  key={opt.key}
-                  onClick={() => setDateRange(opt.key)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${dateRange === opt.key ? 'bg-primary/20 text-primary-light border border-primary/30' : 'bg-white/[0.03] text-text-muted border border-white/[0.06] hover:bg-white/[0.06] hover:text-text-secondary'}`}
+            {/* Month Selector */}
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <CalendarDays size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-light pointer-events-none" />
+                <select
+                  id="month-selector"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="appearance-none pl-9 pr-10 py-2 rounded-xl text-sm font-medium bg-white/[0.04] text-text-primary border border-white/[0.08] hover:border-primary/30 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 outline-none transition-all duration-300 cursor-pointer"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
                 >
-                  {opt.label}
-                </button>
-              ))}
+                  <option value="all">All Time</option>
+                  {availableMonths.map(monthKey => (
+                    <option key={monthKey} value={monthKey}>
+                      {formatMonthLabel(monthKey)}{monthKey === currentMonthKey ? ' (Current)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {selectedMonth === currentMonthKey && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium animate-fade-in">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Live
+                </span>
+              )}
             </div>
 
             {/* Stats Row */}
@@ -201,16 +220,16 @@ export default function PublicDashboard() {
               <StatsCard
                 icon={<Star size={24} className="text-white" fill="white" />}
                 label="Total Ratings"
-                value={dateRange === 'all' ? totalRatings : filteredTotal}
+                value={filteredTotal}
                 color="from-primary to-secondary"
                 glowClass="glow-primary"
                 delay={0}
-                trend={dateRange === 'all' && changePercent !== 0 ? { value: changePercent, label: 'vs last month' } : undefined}
+                trend={changePercent !== 0 ? { value: changePercent, label: `vs ${formatMonthLabel(prevMonthKey)}` } : undefined}
               />
               <StatsCard
                 icon={<TrendingUp size={24} className="text-white" />}
                 label="CMS Hub"
-                value={dateRange === 'all' ? cmsHubRatings : filteredHub}
+                value={filteredHub}
                 color="from-cms-hub to-emerald-400"
                 glowClass="glow-hub"
                 delay={150}
@@ -218,7 +237,7 @@ export default function PublicDashboard() {
               <StatsCard
                 icon={<Zap size={24} className="text-white" />}
                 label="CMS Endgame"
-                value={dateRange === 'all' ? cmsEndgameRatings : filteredEndgame}
+                value={filteredEndgame}
                 color="from-cms-endgame to-blue-400"
                 glowClass="glow-endgame"
                 delay={300}

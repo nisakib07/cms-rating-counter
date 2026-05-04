@@ -401,3 +401,22 @@ body, .glass, .glass-light, header, aside {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Month selector dropdown */
+#month-selector option,
+#spotlight-period-selector option {
+  background: #1e293b;
+  color: #f1f5f9;
+  padding: 8px 12px;
+}
+[data-theme="light"] #month-selector,
+[data-theme="light"] #spotlight-period-selector {
+  background-color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #1a1f36;
+}
+[data-theme="light"] #month-selector option,
+[data-theme="light"] #spotlight-period-selector option {
+  background: #ffffff;
+  color: #1a1f36;
+}
