@@ -9,8 +9,16 @@ import Badge from '@/components/ui/Badge';
 import AnimatedCounter from '@/components/ui/AnimatedCounter';
 import { Select } from '@/components/ui/Input';
 import type { Member, Team, Rating } from '@/types/database';
+import {
+  type FiscalQuarter,
+  getCurrentFiscalQuarter,
+  getQuarterDateRange,
+  getQuarterShortLabel,
+  getCurrentFiscalYear,
+} from '@/lib/fiscalQuarters';
 
 type SortKey = 'rating_count' | 'name';
+type PeriodPreset = '' | 'month' | 'Q1' | 'Q2' | 'Q3' | 'Q4';
 
 export default function LeaderboardPage() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -23,6 +31,27 @@ export default function LeaderboardPage() {
   const [sortAsc, setSortAsc] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>('');
+  const currentQuarter = getCurrentFiscalQuarter();
+
+  const applyPeriodPreset = (preset: PeriodPreset) => {
+    setPeriodPreset(preset);
+    if (preset === '') {
+      setDateFrom('');
+      setDateTo('');
+    } else if (preset === 'month') {
+      const now = new Date();
+      const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      setDateFrom(monthStart);
+      setDateTo(monthEnd);
+    } else {
+      const { start, end } = getQuarterDateRange(preset as FiscalQuarter);
+      setDateFrom(start);
+      setDateTo(end);
+    }
+  };
 
   useEffect(() => {
     async function fetch() {
@@ -129,16 +158,34 @@ export default function LeaderboardPage() {
         <div className="glass rounded-xl p-4 mb-6 flex flex-wrap gap-3 animate-fade-in items-center">
           <Select value={filterLine} onChange={setFilterLine} placeholder="All Service Lines" options={[{ value: 'CMS Hub', label: 'CMS Hub' }, { value: 'CMS Endgame', label: 'CMS Endgame' }]} />
           <Select value={filterTeam} onChange={setFilterTeam} placeholder="All Teams" options={teamOptions} />
-          
+
+          {/* Period presets */}
+          <div className="relative">
+            <Calendar size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary-light pointer-events-none" />
+            <select
+              id="leaderboard-period-selector"
+              value={periodPreset}
+              onChange={(e) => applyPeriodPreset(e.target.value as PeriodPreset)}
+              className="appearance-none pl-8 pr-8 py-2 rounded-lg text-xs font-medium bg-white/[0.04] text-text-primary border border-white/[0.08] hover:border-primary/30 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 outline-none transition-all duration-300 cursor-pointer"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}
+            >
+              <option value="">All Time</option>
+              <option value="month">This Month</option>
+              <option value="Q1">{currentQuarter === 'Q1' ? `Q1 (${getQuarterShortLabel('Q1')}) ●` : `Q1 (${getQuarterShortLabel('Q1')})`}</option>
+              <option value="Q2">{currentQuarter === 'Q2' ? `Q2 (${getQuarterShortLabel('Q2')}) ●` : `Q2 (${getQuarterShortLabel('Q2')})`}</option>
+              <option value="Q3">{currentQuarter === 'Q3' ? `Q3 (${getQuarterShortLabel('Q3')}) ●` : `Q3 (${getQuarterShortLabel('Q3')})`}</option>
+              <option value="Q4">{currentQuarter === 'Q4' ? `Q4 (${getQuarterShortLabel('Q4')}) ●` : `Q4 (${getQuarterShortLabel('Q4')})`}</option>
+            </select>
+          </div>
+
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5">
-              <Calendar size={14} className="text-text-muted" />
-              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-[130px] px-2.5 py-2 rounded-lg bg-surface border border-border text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+              <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPeriodPreset(''); }} className="w-[130px] px-2.5 py-2 rounded-lg bg-surface border border-border text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
             </div>
             <span className="text-text-muted text-xs">to</span>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-[130px] px-2.5 py-2 rounded-lg bg-surface border border-border text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+            <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPeriodPreset(''); }} className="w-[130px] px-2.5 py-2 rounded-lg bg-surface border border-border text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
             {(dateFrom || dateTo) && (
-              <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="px-2 py-2 rounded-lg text-xs text-text-muted hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer">Clear</button>
+              <button onClick={() => { setDateFrom(''); setDateTo(''); setPeriodPreset(''); }} className="px-2 py-2 rounded-lg text-xs text-text-muted hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer">Clear</button>
             )}
           </div>
 

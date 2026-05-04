@@ -29,6 +29,7 @@ export default function PublicDashboard() {
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthKey);
+  const [serviceLine, setServiceLine] = useState<'all' | 'hub' | 'endgame'>('all');
 
   // Build list of available months from allRatings, sorted descending
   const availableMonths = useMemo(() => {
@@ -58,6 +59,9 @@ export default function PublicDashboard() {
   const filteredTotal = countFiveStarOrders(filteredRatings);
   const filteredHub = countFiveStarOrders(filteredRatings.filter(r => hubTeamIds.includes(r.team_id)));
   const filteredEndgame = countFiveStarOrders(filteredRatings.filter(r => endgameTeamIds.includes(r.team_id)));
+
+  // Service line filtered value for the total card
+  const displayTotal = serviceLine === 'hub' ? filteredHub : serviceLine === 'endgame' ? filteredEndgame : filteredTotal;
 
   // Calculate month-over-month change
   // For "all time": compare current month vs last month
@@ -188,8 +192,9 @@ export default function PublicDashboard() {
           </div>
         ) : (
           <div className="flex flex-col gap-8">
-            {/* Month Selector */}
-            <div className="flex items-center gap-3">
+            {/* Filters Row */}
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Month dropdown */}
               <div className="relative">
                 <CalendarDays size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-light pointer-events-none" />
                 <select
@@ -207,6 +212,32 @@ export default function PublicDashboard() {
                   ))}
                 </select>
               </div>
+
+              {/* Service line pill buttons */}
+              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                {([
+                  { key: 'all', label: 'All' },
+                  { key: 'hub', label: 'CMS Hub', color: 'text-cms-hub' },
+                  { key: 'endgame', label: 'CMS Endgame', color: 'text-cms-endgame' },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setServiceLine(opt.key)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                      serviceLine === opt.key
+                        ? opt.key === 'hub'
+                          ? 'bg-cms-hub/15 text-cms-hub border border-cms-hub/20'
+                          : opt.key === 'endgame'
+                            ? 'bg-cms-endgame/15 text-cms-endgame border border-cms-endgame/20'
+                            : 'bg-primary/15 text-primary-light border border-primary/20'
+                        : 'text-text-muted hover:text-text-secondary border border-transparent'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
               {selectedMonth === currentMonthKey && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium animate-fade-in">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -216,32 +247,36 @@ export default function PublicDashboard() {
             </div>
 
             {/* Stats Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div className={`grid grid-cols-1 ${serviceLine === 'all' ? 'sm:grid-cols-3' : ''} gap-5`}>
               <StatsCard
                 icon={<Star size={24} className="text-white" fill="white" />}
-                label="Total Ratings"
-                value={filteredTotal}
-                color="from-primary to-secondary"
-                glowClass="glow-primary"
+                label={serviceLine === 'hub' ? 'CMS Hub Ratings' : serviceLine === 'endgame' ? 'CMS Endgame Ratings' : 'Total Ratings'}
+                value={displayTotal}
+                color={serviceLine === 'hub' ? 'from-cms-hub to-emerald-400' : serviceLine === 'endgame' ? 'from-cms-endgame to-blue-400' : 'from-primary to-secondary'}
+                glowClass={serviceLine === 'hub' ? 'glow-hub' : serviceLine === 'endgame' ? 'glow-endgame' : 'glow-primary'}
                 delay={0}
                 trend={changePercent !== 0 ? { value: changePercent, label: `vs ${formatMonthLabel(prevMonthKey)}` } : undefined}
               />
-              <StatsCard
-                icon={<TrendingUp size={24} className="text-white" />}
-                label="CMS Hub"
-                value={filteredHub}
-                color="from-cms-hub to-emerald-400"
-                glowClass="glow-hub"
-                delay={150}
-              />
-              <StatsCard
-                icon={<Zap size={24} className="text-white" />}
-                label="CMS Endgame"
-                value={filteredEndgame}
-                color="from-cms-endgame to-blue-400"
-                glowClass="glow-endgame"
-                delay={300}
-              />
+              {serviceLine === 'all' && (
+                <>
+                  <StatsCard
+                    icon={<TrendingUp size={24} className="text-white" />}
+                    label="CMS Hub"
+                    value={filteredHub}
+                    color="from-cms-hub to-emerald-400"
+                    glowClass="glow-hub"
+                    delay={150}
+                  />
+                  <StatsCard
+                    icon={<Zap size={24} className="text-white" />}
+                    label="CMS Endgame"
+                    value={filteredEndgame}
+                    color="from-cms-endgame to-blue-400"
+                    glowClass="glow-endgame"
+                    delay={300}
+                  />
+                </>
+              )}
             </div>
 
             {/* NEW: Spotlight + Goal Progress Row */}
@@ -250,7 +285,7 @@ export default function PublicDashboard() {
                 <SpotlightCard members={topMembers} allRatings={allRatings} />
               </div>
               <div className="lg:col-span-1">
-                <GoalProgress allRatings={allRatings} monthlyGoal={100} />
+                <GoalProgress allRatings={allRatings} monthlyGoal={100} selectedMonth={selectedMonth} />
               </div>
             </div>
 

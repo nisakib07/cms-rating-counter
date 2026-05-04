@@ -402,21 +402,27 @@ body, .glass, .glass-light, header, aside {
   overflow: hidden;
 }
 
-/* Month selector dropdown */
+/* Dropdown selectors */
 #month-selector option,
-#spotlight-period-selector option {
+#spotlight-period-selector option,
+#leaderboard-period-selector option,
+#compare-period-selector option {
   background: #1e293b;
   color: #f1f5f9;
   padding: 8px 12px;
 }
 [data-theme="light"] #month-selector,
-[data-theme="light"] #spotlight-period-selector {
+[data-theme="light"] #spotlight-period-selector,
+[data-theme="light"] #leaderboard-period-selector,
+[data-theme="light"] #compare-period-selector {
   background-color: rgba(255, 255, 255, 0.85);
   border-color: rgba(0, 0, 0, 0.1);
   color: #1a1f36;
 }
 [data-theme="light"] #month-selector option,
-[data-theme="light"] #spotlight-period-selector option {
+[data-theme="light"] #spotlight-period-selector option,
+[data-theme="light"] #leaderboard-period-selector option,
+[data-theme="light"] #compare-period-selector option {
   background: #ffffff;
   color: #1a1f36;
 }

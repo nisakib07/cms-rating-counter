@@ -5,50 +5,21 @@ import { Crown, Flame, Star, CalendarDays, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import type { MemberWithStats, Rating } from '@/types/database';
 import { toDriveDirectUrl, countFiveStarOrders, getNickname } from '@/lib/utils';
+import {
+  type FiscalQuarter,
+  getFiscalQuarterMonths,
+  getCurrentFiscalQuarter,
+  getQuarterLabel,
+  getCurrentFiscalYear,
+  filterRatingsByQuarter,
+} from '@/lib/fiscalQuarters';
 
 interface SpotlightCardProps {
   members: MemberWithStats[];
   allRatings: Rating[];
 }
 
-// Fiscal quarters: Q1 = Jul-Sep, Q2 = Oct-Dec, Q3 = Jan-Mar, Q4 = Apr-Jun
-type FilterPeriod = 'month' | 'Q1' | 'Q2' | 'Q3' | 'Q4';
-
-function getFiscalQuarterMonths(quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4'): number[] {
-  switch (quarter) {
-    case 'Q1': return [7, 8, 9];     // Jul, Aug, Sep
-    case 'Q2': return [10, 11, 12];  // Oct, Nov, Dec
-    case 'Q3': return [1, 2, 3];     // Jan, Feb, Mar
-    case 'Q4': return [4, 5, 6];     // Apr, May, Jun
-  }
-}
-
-function getCurrentFiscalQuarter(): 'Q1' | 'Q2' | 'Q3' | 'Q4' {
-  const month = new Date().getMonth() + 1; // 1-12
-  if (month >= 7 && month <= 9) return 'Q1';
-  if (month >= 10 && month <= 12) return 'Q2';
-  if (month >= 1 && month <= 3) return 'Q3';
-  return 'Q4';
-}
-
-function getQuarterLabel(quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4'): string {
-  switch (quarter) {
-    case 'Q1': return 'Q1 (Jul – Sep)';
-    case 'Q2': return 'Q2 (Oct – Dec)';
-    case 'Q3': return 'Q3 (Jan – Mar)';
-    case 'Q4': return 'Q4 (Apr – Jun)';
-  }
-}
-
-function getFiscalYear(quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4'): number {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
-  // Fiscal year starts in July. If we're in Jul-Dec, FY is current year.
-  // If Jan-Jun, FY started last year.
-  if (month >= 7) return year;
-  return year - 1;
-}
+type FilterPeriod = 'month' | FiscalQuarter;
 
 export default function SpotlightCard({ members, allRatings }: SpotlightCardProps) {
   const [period, setPeriod] = useState<FilterPeriod>('month');
@@ -67,19 +38,9 @@ export default function SpotlightCard({ members, allRatings }: SpotlightCardProp
       periodLabel = now.toLocaleDateString('en-US', { month: 'long' });
       periodSubLabel = "This month's top performer";
     } else {
-      // Quarter filtering
-      const qMonths = getFiscalQuarterMonths(period);
-      const fiscalYear = getFiscalYear(period);
-
-      // Determine the calendar year for these months
-      // Q1 (Jul-Sep) and Q2 (Oct-Dec) are in the fiscal start year
-      // Q3 (Jan-Mar) and Q4 (Apr-Jun) are in fiscal start year + 1
-      const calendarYear = (period === 'Q1' || period === 'Q2') ? fiscalYear : fiscalYear + 1;
-
-      filteredRatings = allRatings.filter(r => {
-        const [rYear, rMonth] = r.date_received.split('-').map(Number);
-        return rYear === calendarYear && qMonths.includes(rMonth);
-      });
+      // Quarter filtering using shared utility
+      filteredRatings = filterRatingsByQuarter(allRatings, period);
+      const fiscalYear = getCurrentFiscalYear();
 
       periodLabel = `${period} Spotlight`;
       periodSubLabel = `${getQuarterLabel(period)} · FY${fiscalYear + 1}`;

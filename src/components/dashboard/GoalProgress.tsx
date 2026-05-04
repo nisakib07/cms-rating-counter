@@ -9,9 +9,10 @@ import { supabase } from '@/lib/supabase';
 interface GoalProgressProps {
   allRatings: Rating[];
   monthlyGoal?: number;
+  selectedMonth?: string; // "YYYY-MM" or "all"
 }
 
-export default function GoalProgress({ allRatings, monthlyGoal: propGoal }: GoalProgressProps) {
+export default function GoalProgress({ allRatings, monthlyGoal: propGoal, selectedMonth }: GoalProgressProps) {
   const [configGoal, setConfigGoal] = useState<number | null>(null);
 
   useEffect(() => {
@@ -33,20 +34,29 @@ export default function GoalProgress({ allRatings, monthlyGoal: propGoal }: Goal
 
   const progress = useMemo(() => {
     const now = new Date();
-    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-    const monthRatings = allRatings.filter(r => r.date_received.startsWith(monthKey));
+    // Determine which month to show
+    const targetKey = (!selectedMonth || selectedMonth === 'all') ? currentKey : selectedMonth;
+    const [tYear, tMonth] = targetKey.split('-').map(Number);
+    const targetDate = new Date(tYear, tMonth - 1);
+    const monthName = targetDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const isCurrentMonth = targetKey === currentKey;
+
+    const monthRatings = allRatings.filter(r => r.date_received.startsWith(targetKey));
     const count = countFiveStarOrders(monthRatings);
     const percent = Math.min(Math.round((count / monthlyGoal) * 100), 100);
 
-    // Days remaining in month
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const msPerDay = 86400000;
-    const daysRemaining = Math.max(0, Math.ceil((lastDay.getTime() - now.getTime()) / msPerDay));
+    // Days remaining — only meaningful for current month
+    let daysRemaining = 0;
+    if (isCurrentMonth) {
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const msPerDay = 86400000;
+      daysRemaining = Math.max(0, Math.ceil((lastDay.getTime() - now.getTime()) / msPerDay));
+    }
 
-    return { count, percent, monthName, daysRemaining };
-  }, [allRatings, monthlyGoal]);
+    return { count, percent, monthName, daysRemaining, isCurrentMonth };
+  }, [allRatings, monthlyGoal, selectedMonth]);
 
   return (
     <div className="glass rounded-2xl p-6 animate-fade-in relative overflow-hidden">
@@ -59,7 +69,7 @@ export default function GoalProgress({ allRatings, monthlyGoal: propGoal }: Goal
           </div>
           <div>
             <h3 className="text-sm font-bold text-text-primary">{progress.monthName} Goal</h3>
-            <p className="text-[11px] text-text-muted">{progress.daysRemaining} days remaining</p>
+            <p className="text-[11px] text-text-muted">{progress.isCurrentMonth ? `${progress.daysRemaining} days remaining` : 'Completed'}</p>
           </div>
         </div>
         <div className="text-right">
