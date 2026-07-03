@@ -90,6 +90,17 @@ export default function LeaderboardCard({ topMembers, topTeam }: LeaderboardCard
                       style={{ width: `${barWidth}%` }}
                     />
                   </div>
+                  {/* Team breakdown indicator */}
+                  {member.team_breakdown && member.team_breakdown.length > 1 && (
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      {member.team_breakdown.map(b => (
+                        <span key={b.team_id} className="text-[9px] text-text-muted">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full mr-0.5 align-middle" style={{ backgroundColor: b.team_color || (b.service_line === 'CMS Hub' ? '#10b981' : '#3b82f6') }} />
+                          {b.team_name} ({b.count})
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </Link>
             );

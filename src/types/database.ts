@@ -76,8 +76,18 @@ export interface TeamWithStats extends Team {
   rating_count: number;
 }
 
+export interface TeamRatingBreakdown {
+  team_id: string;
+  team_name: string;
+  service_line: string;
+  team_color?: string;
+  count: number;
+}
+
 export interface MemberWithStats extends Member {
   rating_count: number;
+  current_team_count: number;
+  team_breakdown: TeamRatingBreakdown[];
 }
 
 export interface DashboardStats {

@@ -8,7 +8,7 @@ import { toDriveDirectUrl, countFiveStarOrders, exportToCSV, isActualTeam } from
 import Badge from '@/components/ui/Badge';
 import AnimatedCounter from '@/components/ui/AnimatedCounter';
 import { Select } from '@/components/ui/Input';
-import type { Member, Team, Rating } from '@/types/database';
+import type { Member, Team, Rating, TeamRatingBreakdown } from '@/types/database';
 import {
   type FiscalQuarter,
   getCurrentFiscalQuarter,
@@ -76,17 +76,42 @@ export default function LeaderboardPage() {
       return matchFrom && matchTo;
     });
 
-    let list = members.map(m => ({
-      ...m,
-      rating_count: countFiveStarOrders(filteredRatings.filter(r => r.member_id === m.id)),
-    }));
+    let list = members.map(m => {
+      const memberRatings = filteredRatings.filter(r => r.member_id === m.id);
+      const totalCount = countFiveStarOrders(memberRatings);
+
+      // Build per-team breakdown
+      const teamMap = new Map<string, { team_name: string; service_line: string; team_color?: string; ratings: typeof memberRatings }>();
+      for (const r of memberRatings) {
+        if (!teamMap.has(r.team_id)) {
+          const rTeam = teams.find(t => t.id === r.team_id);
+          teamMap.set(r.team_id, {
+            team_name: rTeam?.name || 'Unknown',
+            service_line: rTeam?.service_line || '',
+            team_color: rTeam?.color,
+            ratings: [],
+          });
+        }
+        teamMap.get(r.team_id)!.ratings.push(r);
+      }
+      const team_breakdown: TeamRatingBreakdown[] = Array.from(teamMap.entries()).map(([team_id, info]) => ({
+        team_id,
+        team_name: info.team_name,
+        service_line: info.service_line,
+        team_color: info.team_color,
+        count: countFiveStarOrders(info.ratings),
+      })).filter(b => b.count > 0).sort((a, b) => b.count - a.count);
+
+      return {
+        ...m,
+        rating_count: totalCount,
+        team_breakdown,
+      };
+    });
 
     // Filter by member's team/service line
     if (filterTeam) list = list.filter(m => m.team_id === filterTeam);
     if (filterLine) list = list.filter(m => m.team?.service_line === filterLine);
-
-    // Only show members who actually have ratings in this period when a date is selected, optionally? 
-    // Actually typically the leaderboard shows 0 as well. But let's leave it as is so 0-count members drop to the bottom.
 
     // Sort
     list.sort((a, b) => {
@@ -95,7 +120,7 @@ export default function LeaderboardPage() {
     });
 
     return list;
-  }, [members, ratings, filterTeam, filterLine, sortKey, sortAsc, dateFrom, dateTo]);
+  }, [members, ratings, teams, filterTeam, filterLine, sortKey, sortAsc, dateFrom, dateTo]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortAsc(!sortAsc);
@@ -234,6 +259,17 @@ export default function LeaderboardPage() {
                     <Badge variant={m.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} size="sm" customColor={m.team?.color}>{m.team?.name}</Badge>
                     <span className="text-xs text-text-muted">{m.role}</span>
                   </div>
+                  {/* Team breakdown when ratings span multiple teams */}
+                  {m.team_breakdown && m.team_breakdown.length > 1 && (
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      {m.team_breakdown.map(b => (
+                        <span key={b.team_id} className="inline-flex items-center gap-1 text-[10px] text-text-muted px-1.5 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.04]">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: b.team_color || (b.service_line === 'CMS Hub' ? '#10b981' : '#3b82f6') }} />
+                          {b.team_name} · {b.count}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="text-right shrink-0">
                   <AnimatedCounter value={m.rating_count} className="text-2xl sm:text-3xl font-extrabold text-primary-light tabular-nums" />

@@ -52,10 +52,40 @@ export function useDashboardStats() {
 
       // Member stats (only active members in leaderboard)
       const activeMembers = members.filter(m => m.is_active !== false);
-      const memberStats: MemberWithStats[] = activeMembers.map(m => ({
-        ...m,
-        rating_count: countFiveStarOrders(ratings.filter(r => r.member_id === m.id)),
-      })).sort((a, b) => b.rating_count - a.rating_count);
+      const memberStats: MemberWithStats[] = activeMembers.map(m => {
+        const memberRatings = ratings.filter(r => r.member_id === m.id);
+        const totalCount = countFiveStarOrders(memberRatings);
+        const currentTeamCount = countFiveStarOrders(memberRatings.filter(r => r.team_id === m.team_id));
+
+        // Build per-team breakdown
+        const teamMap = new Map<string, { team_name: string; service_line: string; team_color?: string; ratings: typeof memberRatings }>();
+        for (const r of memberRatings) {
+          if (!teamMap.has(r.team_id)) {
+            const rTeam = teams.find(t => t.id === r.team_id);
+            teamMap.set(r.team_id, {
+              team_name: rTeam?.name || 'Unknown',
+              service_line: rTeam?.service_line || '',
+              team_color: rTeam?.color,
+              ratings: [],
+            });
+          }
+          teamMap.get(r.team_id)!.ratings.push(r);
+        }
+        const team_breakdown = Array.from(teamMap.entries()).map(([team_id, info]) => ({
+          team_id,
+          team_name: info.team_name,
+          service_line: info.service_line,
+          team_color: info.team_color,
+          count: countFiveStarOrders(info.ratings),
+        })).filter(b => b.count > 0).sort((a, b) => b.count - a.count);
+
+        return {
+          ...m,
+          rating_count: totalCount,
+          current_team_count: currentTeamCount,
+          team_breakdown,
+        };
+      }).sort((a, b) => b.rating_count - a.rating_count);
       setTopMembers(memberStats);
 
       // Recent ratings

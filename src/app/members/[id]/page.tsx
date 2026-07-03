@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Star, ArrowLeft, Calendar, TrendingUp, Flame, Award } from 'lucide-react';
+import { Star, ArrowLeft, Calendar, TrendingUp, Flame, Award, Users } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/lib/supabase';
 import { toDriveDirectUrl, countFiveStarOrders } from '@/lib/utils';
@@ -11,7 +11,7 @@ import Badge from '@/components/ui/Badge';
 import StarRating from '@/components/ui/StarRating';
 import RatingHeatmap from '@/components/dashboard/RatingHeatmap';
 import { getUnlockedAchievements, getNextAchievement, getWeeklyStreak } from '@/lib/achievements';
-import type { Member, Rating } from '@/types/database';
+import type { Member, Rating, Team } from '@/types/database';
 
 export default function MemberProfilePage() {
   const params = useParams();
@@ -65,6 +65,25 @@ export default function MemberProfilePage() {
   const streak = getWeeklyStreak(ratings);
   const achievements = getUnlockedAchievements(fiveStarCount);
   const nextAchievement = getNextAchievement(fiveStarCount);
+
+  // Build per-team breakdown for ratings
+  const teamBreakdown = (() => {
+    const teamMap = new Map<string, { team: Team | undefined; ratings: Rating[] }>();
+    for (const r of ratings) {
+      if (!teamMap.has(r.team_id)) {
+        teamMap.set(r.team_id, { team: r.team, ratings: [] });
+      }
+      teamMap.get(r.team_id)!.ratings.push(r);
+    }
+    return Array.from(teamMap.entries()).map(([team_id, info]) => ({
+      team_id,
+      team: info.team,
+      ratings: info.ratings,
+      count: countFiveStarOrders(info.ratings),
+      total: info.ratings.length,
+    })).sort((a, b) => b.count - a.count);
+  })();
+  const hasMultipleTeams = teamBreakdown.length > 1;
 
   // Build mini-chart data (last 6 months)
   const chartMonths: { label: string; key: string; count: number }[] = [];
@@ -221,6 +240,52 @@ export default function MemberProfilePage() {
           </div>
         </div>
 
+        {/* Ratings by Team Breakdown */}
+        {hasMultipleTeams && (
+          <div className="glass rounded-2xl p-7 mb-8 animate-fade-in">
+            <h3 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-secondary/15 flex items-center justify-center">
+                <Users size={18} className="text-secondary" />
+              </div>
+              Ratings by Team
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {teamBreakdown.map(tb => {
+                const isCurrentTeam = tb.team_id === member.team_id;
+                return (
+                  <Link
+                    key={tb.team_id}
+                    href={`/teams/${tb.team_id}`}
+                    className={`flex items-center gap-4 p-4 rounded-xl border transition-all hover:bg-white/[0.04] ${
+                      isCurrentTeam ? 'bg-primary/[0.04] border-primary/15' : 'bg-white/[0.02] border-white/[0.04]'
+                    }`}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: (tb.team?.color || (tb.team?.service_line === 'CMS Hub' ? '#10b981' : '#3b82f6')) + '20' }}
+                    >
+                      <Users size={16} style={{ color: tb.team?.color || (tb.team?.service_line === 'CMS Hub' ? '#10b981' : '#3b82f6') }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-text-primary truncate">
+                        {tb.team?.name || 'Unknown Team'}
+                        {isCurrentTeam && <span className="text-[10px] text-primary-light font-normal ml-2">(Current)</span>}
+                      </div>
+                      <Badge variant={tb.team?.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} size="sm" customColor={tb.team?.color}>
+                        {tb.team?.service_line}
+                      </Badge>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-extrabold text-primary-light">{tb.count}</div>
+                      <div className="text-[10px] text-text-muted uppercase">5★ ratings</div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* All Ratings */}
         <div className="glass rounded-2xl p-7 animate-fade-in">
           <h3 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-3">
@@ -239,6 +304,14 @@ export default function MemberProfilePage() {
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-text-primary">{r.client_name || 'No client name'}</div>
                     {r.review_text && <p className="text-xs text-text-muted mt-0.5 line-clamp-2">{r.review_text}</p>}
+                    {/* Team badge per rating */}
+                    {hasMultipleTeams && r.team && (
+                      <div className="mt-1">
+                        <Badge variant={r.team.service_line === 'CMS Hub' ? 'cms-hub' : 'cms-endgame'} size="sm" customColor={r.team.color}>
+                          {r.team.name}
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                   <div className="text-right shrink-0">
                     {r.order_id && <div className="text-xs text-text-muted font-mono">{r.order_id}</div>}
